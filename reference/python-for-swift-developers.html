@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Python for the Swift Developer — Reference</title>
+<style>
+  :root{ --ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8; --accent:#7a1f1f; --soft:#f3f0e7; }
+  *{box-sizing:border-box}
+  body{background:var(--paper); color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.5; margin:0; padding:2.2rem 1.2rem 3rem; font-size:.95rem}
+  .wrap{max-width:760px; margin:0 auto}
+  .kicker{font-variant:small-caps; letter-spacing:.08em; color:var(--accent); font-size:.9rem}
+  h1{font-size:1.7rem; margin:.1rem 0 .2rem; font-weight:600}
+  .sub{color:#5a564c; margin:0 0 1.4rem}
+  h2{font-size:.95rem; font-variant:small-caps; letter-spacing:.06em; color:var(--accent);
+    margin:1.6rem 0 .4rem; border-bottom:1px solid var(--rule); padding-bottom:.2rem}
+  p{margin:.5rem 0}
+  code{font-family:"SF Mono",Menlo,Consolas,monospace; font-size:.85em;
+    background:var(--soft); padding:.08em .3em; border-radius:3px}
+  a{color:var(--accent)}
+  table{border-collapse:collapse; width:100%; margin:.5rem 0; font-size:.85rem}
+  th,td{border:1px solid var(--rule); padding:.4rem .55rem; text-align:left; vertical-align:top}
+  th{background:var(--soft); font-variant:small-caps; letter-spacing:.04em; font-weight:600;
+    font-size:.8rem}
+  td.c{font-family:"SF Mono",Menlo,Consolas,monospace; font-size:.78rem; white-space:pre; line-height:1.45}
+  .note{font-size:.86rem; color:#5a564c; margin:.3rem 0 .8rem}
+  .big{background:var(--soft); border-left:3px solid var(--accent); padding:.7rem 1rem; margin:.8rem 0}
+  footer{margin-top:2rem; border-top:1px solid var(--rule); padding-top:.8rem; font-size:.85rem; color:#5a564c}
+  @media print{ body{padding:.5cm; font-size:9pt} table{break-inside:avoid} }
+
+  /* dark theme: warm sepia night */
+  html[data-theme="dark"]{color-scheme:dark;
+    --ink:#e8e3d6; --paper:#201d18; --rule:#3d382f; --accent:#c97b6f;
+    --soft:#2a2620; --good:#8fbf9c; --bad:#d98a80}
+  html[data-theme="dark"] .sub, html[data-theme="dark"] .note,
+  html[data-theme="dark"] footer{color:#a89f8d}
+  .themetoggle{position:fixed; top:14px; right:14px; z-index:50; width:38px; height:38px;
+    border-radius:50%; border:1px solid var(--rule); background:var(--soft); color:var(--ink);
+    font-size:1rem; cursor:pointer; line-height:1; font-family:inherit}
+  .themetoggle:hover{border-color:var(--accent)}
+  @media print{.themetoggle{display:none}
+    html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+      --accent:#7a1f1f; --soft:#f3f0e7}}
+</style>
+<script>(function(){var t=localStorage.getItem('book-theme');
+if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+document.documentElement.setAttribute('data-theme',t);})()</script>
+</head>
+<body>
+<button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
+<div class="wrap">
+  <div class="kicker">AI Foundations · Reference</div>
+  <h1>Python for the Swift Developer</h1>
+  <p class="sub">Every Python construct used in this book — checked against every snippet in all 19 lessons — explained through the Swift you already speak. Read it once now, keep it open beside any lesson. All outputs shown were produced by actually running the code.</p>
+
+  <h2>The five differences that matter (60 seconds)</h2>
+  <div class="big">
+    <p><strong>1. Indentation IS the syntax.</strong> No braces. A colon opens a block; the indented lines below belong to it; un-indenting closes it. Mis-indent and you change the program.</p>
+    <p><strong>2. No declarations.</strong> No <code>let</code>/<code>var</code>: <code>x = 0.5</code> both creates and assigns. Nothing is immutable by default.</p>
+    <p><strong>3. No declared types.</strong> <code>x</code> can hold a number now and a list later (don't, but it can). Types exist — they're just not written.</p>
+    <p><strong>4. Spelling:</strong> <code>True</code>, <code>False</code>, <code>None</code> (capitalized; <code>None</code> ≈ <code>nil</code>); <code>and</code>, <code>or</code>, <code>not</code> instead of <code>&amp;&amp;</code>, <code>||</code>, <code>!</code>; <code>snake_case</code> instead of camelCase; <code>#</code> for comments.</p>
+    <p><strong>5. No semicolons, no parentheses around conditions:</strong> <code>if z &gt; 0:</code> not <code>if (z &gt; 0) {</code>.</p>
+  </div>
+
+  <h2>Variables &amp; numbers</h2>
+  <table>
+    <tr><th>Swift</th><th>Python</th><th>notes</th></tr>
+    <tr><td class="c">var w = 0.0
+let lr = 5.0</td><td class="c">w = 0.0
+lr = 5.0</td><td>same thing; no var/let distinction</td></tr>
+    <tr><td class="c">var a = 0.0, b = 1.0</td><td class="c">a, b = 0.0, 1.0
+w1, w2, b = 0.5, -0.4, 0.1</td><td>multiple assignment, used all over lessons 9–10</td></tr>
+    <tr><td class="c">pow(2.0, 10.0)</td><td class="c">2 ** 10        # 1024</td><td><code>**</code> is power; <code>(w - 3) ** 2</code> in lesson 7</td></tr>
+    <tr><td class="c">z += w * x</td><td class="c">z += w * x</td><td>identical</td></tr>
+  </table>
+
+  <h2>print &amp; f-strings (the book's favorite tool)</h2>
+  <p>An <strong>f-string</strong> is Python's string interpolation: prefix <code>f</code>, then <code>{expression}</code> inside — Swift's <code>\(expression)</code> with curly braces. After a colon comes a <strong>format spec</strong>, replacing Swift's <code>String(format:)</code>:</p>
+  <table>
+    <tr><th>Swift</th><th>Python</th><th>actual output</th></tr>
+    <tr><td class="c">print("a = \(a)")</td><td class="c">print(f"a = {a}")</td><td>—</td></tr>
+    <tr><td class="c">String(format: "%.2f", 3.14159)</td><td class="c">f"{3.14159:.2f}"</td><td class="c">3.14</td></tr>
+    <tr><td class="c">String(format: "%3d", 7)</td><td class="c">f"{7:3d}"</td><td class="c">&nbsp;&nbsp;7</td></tr>
+    <tr><td class="c">String(format: "%+5.1f", 0.5)</td><td class="c">f"{0.5:+5.1f}"</td><td class="c">&nbsp;+0.5</td></tr>
+    <tr><td class="c">// pad to width 5</td><td class="c">f"{'cat':5s}"</td><td class="c">cat&nbsp;&nbsp;</td></tr>
+  </table>
+  <p class="note">Decode <code>{loss:.4f}</code>: print <code>loss</code> as a float with 4 digits after the point. <code>{epoch:4d}</code>: integer, right-aligned to width 4. That's 90% of the book's printing.</p>
+
+  <h2>Lists ↔ Arrays</h2>
+  <table>
+    <tr><th>Swift</th><th>Python</th><th>notes / output</th></tr>
+    <tr><td class="c">var xs = [10, 20, 30]
+xs[0]
+xs.count
+xs.append(7)</td><td class="c">xs = [10, 20, 30]
+xs[0]
+len(xs)
+xs.append(7)</td><td><code>len()</code> is a function, not a property</td></tr>
+    <tr><td class="c">Array(xs[1...])
+Array(xs[..&lt;2])</td><td class="c">xs[1:]     # [20, 30]
+xs[:2]     # [10, 20]</td><td><strong>slicing</strong>; works on strings too: <code>"to be"[1:]</code> → <code>'o be'</code>. <code>s[1:]</code> in lesson 14 means "the string without its first character"</td></tr>
+    <tr><td class="c">[[1.0, 2.0], [3.0, 4.0]]
+W[n][i]</td><td class="c">[[1.0, 2.0], [3.0, 4.0]]
+W[n][i]</td><td>list of lists = our weight matrices, identical syntax</td></tr>
+    <tr><td class="c">parts.joined(separator: "-")</td><td class="c">"-".join(parts)</td><td class="c">'a-b-c'  # separator first!</td></tr>
+  </table>
+
+  <h2>Dictionaries &amp; sets</h2>
+  <table>
+    <tr><th>Swift</th><th>Python</th><th>notes</th></tr>
+    <tr><td class="c">var emb = ["king": [1.0, 2.0]]
+emb["king"]!        // crash if absent
+emb["x"] != nil</td><td class="c">emb = {"king": [1.0, 2.0]}
+emb["king"]        # crash if absent
+"x" in emb</td><td>Python's <code>d[k]</code> behaves like Swift's force-unwrap — it throws if the key is missing. <code>in</code> tests membership (also works on lists and strings)</td></tr>
+    <tr><td class="c">for (k, v) in emb { }</td><td class="c">for k, v in emb.items():</td><td><code>.items()</code> gives the pairs</td></tr>
+    <tr><td class="c">Set("emma")</td><td class="c">set("emma")
+sorted(set("emma"))  # ['a','e','m']</td><td>lesson 13's vocabulary trick: unique characters, sorted</td></tr>
+  </table>
+
+  <h2>Loops: for, range, enumerate, zip</h2>
+  <table>
+    <tr><th>Swift</th><th>Python</th><th>notes / output</th></tr>
+    <tr><td class="c">for x in xs { }</td><td class="c">for x in xs:</td><td>identical idea</td></tr>
+    <tr><td class="c">for i in 0..&lt;5 { }
+for i in 1..&lt;4 { }</td><td class="c">for i in range(5):    # 0,1,2,3,4
+for i in range(1, 4): # 1,2,3</td><td><code>range</code> is end-exclusive, exactly like <code>..&lt;</code>. <code>range(1, 301)</code> in lesson 9 = epochs 1…300</td></tr>
+    <tr><td class="c">for (i, ch) in xs.enumerated()</td><td class="c">for i, ch in enumerate(xs):</td><td>index + element together</td></tr>
+    <tr><td class="c">for (a, b) in zip(xs, ys)</td><td class="c">for a, b in zip(xs, ys):</td><td>pairwise walk — the book's dot products: <code>for x, w in zip(inputs, weights)</code></td></tr>
+    <tr><td class="c">for ((x1, x2), y) in data</td><td class="c">for (x1, x2), y in data:</td><td><strong>tuple unpacking</strong> — destructure nested pairs right in the loop head (lessons 9–10's training data)</td></tr>
+    <tr><td class="c">while true { … break }</td><td class="c">while True:
+    …
+    break</td><td>lesson 14's generation loop</td></tr>
+  </table>
+
+  <h2>Comprehensions — Python's map/filter/reduce in one syntax</h2>
+  <p>The single most Swift-foreign thing in the book. A <strong>comprehension</strong> builds a collection from a loop, written inside the brackets. Read it back-to-front: "for each x … produce this expression".</p>
+  <table>
+    <tr><th>Swift</th><th>Python</th><th>actual output</th></tr>
+    <tr><td class="c">(0..&lt;5).map { $0 * $0 }</td><td class="c">[x*x for x in range(5)]</td><td class="c">[0, 1, 4, 9, 16]</td></tr>
+    <tr><td class="c">(0..&lt;10).filter { $0 % 2 == 0 }</td><td class="c">[x for x in range(10) if x % 2 == 0]</td><td class="c">[0, 2, 4, 6, 8]</td></tr>
+    <tr><td class="c">(0..&lt;5).map { $0*$0 }
+      .reduce(0, +)</td><td class="c">sum(x*x for x in range(5))</td><td class="c">30</td></tr>
+    <tr><td class="c">Dictionary(uniqueKeysWithValues:
+  "ab".enumerated()
+      .map { ($1, $0) })</td><td class="c">{ch: i for i, ch in enumerate("ab")}</td><td class="c">{'a': 0, 'b': 1}</td></tr>
+  </table>
+  <p class="note">That last one is lesson 13's <code>stoi</code> table — character → ID. When a comprehension confuses you, unroll it mentally into a plain <code>for</code> loop with <code>.append(…)</code>; they're the same machine.</p>
+
+  <h2>Functions, lambda, key=</h2>
+  <table>
+    <tr><th>Swift</th><th>Python</th><th>notes</th></tr>
+    <tr><td class="c">func sigmoid(_ z: Double) -&gt; Double {
+    1 / (1 + exp(-z))
+}</td><td class="c">def sigmoid(z):
+    return 1 / (1 + math.exp(-z))</td><td><code>def</code>, colon, indent; <code>return</code> is always explicit; no types written</td></tr>
+    <tr><td class="c">{ v in -v }   // closure</td><td class="c">lambda v: -v</td><td>a one-expression anonymous function</td></tr>
+    <tr><td class="c">xs.sorted { … }
+xs.max { … }</td><td class="c">sorted(xs, key=lambda v: -v)
+max(emb, key=lambda w: cos(t, emb[w]))</td><td><code>key=</code> says "rank by this value" — lesson 15 finds the nearest word with exactly this</td></tr>
+  </table>
+  <p class="note"><code>global state</code> (lesson 14) declares that a function assigns to a variable living outside it — Swift closures capture outer variables automatically; Python makes you say it for writes.</p>
+
+  <h2>Conditions</h2>
+  <table>
+    <tr><th>Swift</th><th>Python</th><th>notes</th></tr>
+    <tr><td class="c">if z &gt; 0 { } else { }</td><td class="c">if z &gt; 0:
+    …
+else:
+    …</td><td>no parens, no braces, colon + indent</td></tr>
+    <tr><td class="c">let s = a &gt; 0.5 ? "YES" : "no"</td><td class="c">s = "YES" if a &gt; 0.5 else "no"</td><td>ternary reads middle-out: value-if-true, condition, value-if-false (lesson 2)</td></tr>
+  </table>
+
+  <h2>Imports — and the only two the book uses</h2>
+  <table>
+    <tr><th>Swift</th><th>Python</th><th>notes</th></tr>
+    <tr><td class="c">import Foundation
+exp(-z); sqrt(x)</td><td class="c">import math
+math.exp(-z); math.sqrt(x)</td><td>stdlib math lives behind a prefix</td></tr>
+    <tr><td class="c">// lessons 11–12 only</td><td class="c">import torch
+import torch.nn as nn</td><td><code>as</code> makes a short alias — like Swift's <code>typealias</code>, for a whole module</td></tr>
+  </table>
+
+  <h2>What this book never uses</h2>
+  <p class="note">No classes, no inheritance, no decorators, no async, no exceptions handling, no type hints. If you can read everything above, you can read 100% of the Python in lessons 1–19 — verified by scanning every snippet. To go beyond reading into fluent writing, the <a href="https://docs.python.org/3/tutorial/index.html">official Python tutorial</a> is the canonical next step; chapters 3–5 cover this entire page.</p>
+
+  <h2>Try it (zero install, as always)</h2>
+  <p class="note">Open <a href="https://colab.research.google.com">Google Colab</a>, make a new notebook, and retype any table row — guess the output before running. Retyping beats rereading; that's lesson-zero of this whole book.</p>
+
+  <footer>
+    <p><a href="../index.html">Course index</a> · <a href="formulas-cheat-sheet.html">Formulas cheat sheet</a> · See Lesson 19 for the full tooling landscape.</p>
+  </footer>
+</div>
+<script>
+(function(){
+  var b=document.getElementById('themeToggle');
+  function sync(){b.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀':'☾';}
+  b.addEventListener('click',function(){
+    var next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{localStorage.setItem('book-theme',next);}catch(e){}
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

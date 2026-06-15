@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 9 — The Training Loop</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.55; margin:0; padding:3rem 1.2rem 5rem;
+  }
+  .wrap{max-width:680px; margin:0 auto}
+  .kicker{font-variant:small-caps; letter-spacing:.08em; color:var(--accent);
+    font-size:.95rem; margin-bottom:.2rem}
+  h1{font-size:2.1rem; line-height:1.15; margin:.1rem 0 1.2rem; font-weight:600}
+  h2{font-size:1.3rem; margin:2.4rem 0 .6rem; font-weight:600}
+  p{margin:.7rem 0}
+  .lead{font-size:1.12rem; color:#33312c}
+  .formula{
+    background:var(--soft); border-left:3px solid var(--accent);
+    padding:.9rem 1.1rem; margin:1.2rem 0; font-size:1.15rem;
+    font-family:"Latin Modern Math","Cambria Math",Georgia,serif; overflow-x:auto;
+  }
+  code{font-family:"SF Mono",Menlo,Consolas,monospace; font-size:.92em;
+    background:var(--soft); padding:.1em .35em; border-radius:3px}
+  a{color:var(--accent)}
+  .sidenote{font-size:.9rem; color:#5a564c; border-top:1px solid var(--rule);
+    border-bottom:1px solid var(--rule); padding:.7rem 0; margin:1.4rem 0}
+
+  /* interactive widget */
+  .widget{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .row{display:grid; grid-template-columns:90px 1fr 70px; gap:.8rem; align-items:center;
+    margin:.55rem 0}
+  .row label{font-variant:small-caps; letter-spacing:.04em; color:#444}
+  input[type=range]{width:100%}
+  .val{font-family:"SF Mono",Menlo,monospace; text-align:right}
+  .out{margin-top:1rem; padding-top:1rem; border-top:1px dashed var(--rule)}
+  .bar{height:22px; background:var(--soft); border-radius:11px; overflow:hidden; margin-top:.4rem}
+  .fill{height:100%; width:0; background:var(--accent); transition:width .12s}
+  .big{font-size:1.5rem; font-family:"SF Mono",Menlo,monospace}
+
+  /* code */
+  .tabs{display:flex; gap:.4rem; margin:1.2rem 0 0}
+  .tab{font:inherit; font-size:.9rem; font-variant:small-caps; letter-spacing:.05em;
+    border:1px solid var(--rule); border-bottom:none; background:var(--soft);
+    padding:.45rem 1rem; border-radius:6px 6px 0 0; cursor:pointer; color:#666}
+  .tab.active{background:#272521; color:#f3f0e7}
+  .codeblock{margin:0 0 1rem; background:#272521; color:#f3f0e7; border-radius:0 6px 6px 6px;
+    padding:1rem 1.1rem; overflow-x:auto}
+  .codeblock code{background:none; color:inherit; font-size:.86rem; line-height:1.5;
+    font-family:"SF Mono",Menlo,Consolas,monospace; white-space:pre}
+
+  /* quiz */
+  .quiz{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .q{font-weight:600; margin-bottom:.6rem}
+  .opt{display:block; width:100%; text-align:left; border:1px solid var(--rule);
+    background:var(--paper); padding:.6rem .8rem; margin:.4rem 0; border-radius:6px;
+    cursor:pointer; font:inherit}
+  .opt:hover{background:var(--soft)}
+  .opt.correct{border-color:var(--good); background:#eef7f0}
+  .opt.wrong{border-color:var(--bad); background:#f9eeee}
+  .fb{margin-top:.5rem; font-size:.95rem; min-height:1.2em}
+  footer{margin-top:3rem; border-top:1px solid var(--rule); padding-top:1rem;
+    font-size:.92rem; color:#5a564c}
+
+  /* training widget (this lesson) */
+  .btn{font:inherit; font-size:.95rem; font-variant:small-caps; letter-spacing:.05em;
+    border:1px solid var(--accent); background:var(--accent); color:#fdfcf8;
+    padding:.45rem 1.1rem; border-radius:6px; cursor:pointer}
+  .btn[disabled]{opacity:.45; cursor:default}
+  .btn.ghost{background:transparent; color:var(--accent)}
+  #curve{display:block; width:100%; height:auto; border:1px solid var(--rule);
+    border-radius:6px; margin-top:1rem; background:#fff}
+  .trow{display:grid; grid-template-columns:80px 1fr 64px 72px; gap:.7rem;
+    align-items:center; margin:.45rem 0}
+  .trow label{font-family:"SF Mono",Menlo,monospace; font-size:.85rem}
+  .trow .bar{margin-top:0}
+  .tgt{font-size:.8rem; color:#5a564c}
+
+  /* dark theme: warm sepia night */
+  html[data-theme="dark"]{color-scheme:dark;
+    --ink:#e8e3d6; --paper:#201d18; --rule:#3d382f; --accent:#c97b6f;
+    --soft:#2a2620; --good:#8fbf9c; --bad:#d98a80}
+  html[data-theme="dark"] .lead{color:#cfc9bb}
+  html[data-theme="dark"] .sidenote, html[data-theme="dark"] footer,
+  html[data-theme="dark"] .phase-sub, html[data-theme="dark"] .desc,
+  html[data-theme="dark"] .sub, html[data-theme="dark"] .note{color:#a89f8d}
+  html[data-theme="dark"] [style*="#5a564c"]{color:#a89f8d!important}
+  html[data-theme="dark"] .quiz{background:#26221c}
+  html[data-theme="dark"] .opt.correct{background:#2a3a2e}
+  html[data-theme="dark"] .opt.wrong{background:#3d2a27}
+  html[data-theme="dark"] .tab{color:#9a9183}
+  /* widgets stay light: printed-figure look, keeps all verified canvas/SVG colors intact */
+  html[data-theme="dark"] .widget{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+    background:#fff; color:#1a1a1a; color-scheme:light}
+  .themetoggle{position:fixed; top:14px; right:14px; z-index:50; width:38px; height:38px;
+    border-radius:50%; border:1px solid var(--rule); background:var(--soft); color:var(--ink);
+    font-size:1rem; cursor:pointer; line-height:1; font-family:inherit}
+  .themetoggle:hover{border-color:var(--accent)}
+  @media print{.themetoggle{display:none}
+    html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+      --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a}}
+</style>
+<script>(function(){var t=localStorage.getItem('book-theme');
+if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+document.documentElement.setAttribute('data-theme',t);})()</script>
+</head>
+<body>
+<button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
+<div class="wrap">
+  <div class="kicker">AI Foundations · Lesson 9 · Phase 3 — How a network learns</div>
+  <h1>The Training Loop</h1>
+  <p class="lead">Lesson 6 gave you a number for "how wrong" (the loss). Lesson 7 gave you the direction to nudge each weight (gradient descent). Lesson 8 gave you a fast way to compute all those nudges (backpropagation). Today they snap together into one short loop — and that loop trains a neuron to be the AND gate <em>in front of you</em>. In lesson 2 you set the AND weights by hand. Today the machine finds them itself. That is the "learning" in machine learning, and it's the mission promise starting to cash out.</p>
+
+  <h2>The whole algorithm is five lines</h2>
+  <p>Everything any neural network does to learn — from our four-row AND table to a model with billions of weights — is this loop:</p>
+  <pre class="codeblock" style="border-radius:6px"><code>for each epoch:                       # one full pass over the training data
+    forward   - run every example through the network      (lesson 4)
+    loss      - measure how wrong the outputs are          (lesson 6)
+    backward  - compute every gradient with backprop       (lesson 8)
+    update    - each weight:  w -= η · gradient            (lesson 7)
+# repeat until the loss is low enough</code></pre>
+  <p>One new word: an <strong>epoch</strong> is one full pass over the training data — "one epoch means that every example has been seen once" (<a href="https://cs231n.github.io/neural-networks-3/">Stanford CS231n</a>). Michael Nielsen says it the long way: once we've used up all the training inputs, that is "said to complete an epoch of training. At that point we start over with a new training epoch" (<a href="http://neuralnetworksanddeeplearning.com/chap1.html">Nielsen, ch.&nbsp;1</a>). So "train for 300 epochs" just means: run the loop body 300 times.</p>
+  <p>And this isn't a cartoon of real practice — it <em>is</em> real practice. In PyTorch (lesson 11) the loop appears almost verbatim: you call <code>loss.backward()</code> for our <em>backward</em> line and <code>optimizer.step()</code> for our <em>update</em> line (<a href="https://docs.pytorch.org/tutorials/beginner/basics/optimization_tutorial.html">PyTorch optimization tutorial</a>). Learn the five lines once, use them forever.</p>
+
+  <h2>Watch a neuron learn AND</h2>
+  <p>Here is the loop running live, in your browser. The setup: one sigmoid neuron (lesson 1), the four AND examples — targets 0, 0, 0, 1 — MSE loss, learning rate η&nbsp;=&nbsp;5, and a deliberately boring start: <strong>w₁ = w₂ = b = 0</strong>. No randomness, so your run will match mine exactly. With all-zero weights, z = 0 for every input, so every output starts at σ(0) = 0.5 and the loss starts at 0.5² = 0.25. Press <strong>train</strong> and watch the loss curve fall and the four bars split apart — three sinking toward 0, one climbing toward 1.</p>
+
+  <div class="widget">
+    <div style="display:flex; gap:.6rem; align-items:center; flex-wrap:wrap">
+      <button class="btn" id="train">train 300 epochs</button>
+      <button class="btn ghost" id="reset">reset</button>
+      <span class="val" id="status" style="margin-left:auto">epoch 0 · loss 0.2500</span>
+    </div>
+    <canvas id="curve" width="640" height="190"></canvas>
+    <div class="out">
+      <div class="trow"><label>0 AND 0</label><div class="bar"><div class="fill" id="f0" style="width:50%"></div></div><span class="val" id="o0">0.500</span><span class="tgt">target 0</span></div>
+      <div class="trow"><label>0 AND 1</label><div class="bar"><div class="fill" id="f1" style="width:50%"></div></div><span class="val" id="o1">0.500</span><span class="tgt">target 0</span></div>
+      <div class="trow"><label>1 AND 0</label><div class="bar"><div class="fill" id="f2" style="width:50%"></div></div><span class="val" id="o2">0.500</span><span class="tgt">target 0</span></div>
+      <div class="trow"><label>1 AND 1</label><div class="bar"><div class="fill" id="f3" style="width:50%"></div></div><span class="val" id="o3">0.500</span><span class="tgt">target 1</span></div>
+      <div class="val" id="params" style="text-align:left; margin-top:.8rem">w₁ = 0.00 &nbsp; w₂ = 0.00 &nbsp; b = 0.00</div>
+    </div>
+  </div>
+
+  <p>Look at the shape of that curve: a steep plunge, then a long patient tail. That shape is the signature of gradient descent — big confident steps while the slope is steep, tiny ones as the valley flattens out. After 300 epochs the neuron lands on <code>w₁ = 5.14, w₂ = 5.14, b = −7.81</code> — and check what those weights <em>mean</em>: z is positive only when both inputs are 1 (z = +2.48), and negative otherwise (z = −2.67 with one input on, z = −7.81 with none). The neuron rediscovered the AND rule from lesson 2 — nobody told it.</p>
+
+  <h2>The update step — three ways to write it</h2>
+  <p>Forward, loss and backward you already own from lessons 4–8. The only line we haven't stared at as a formula is <em>update</em>. Spelled out, it's one subtraction per parameter:</p>
+  <div class="formula" style="text-align:center; font-size:1.2rem">
+    new w₁ = w₁ − η · ∂L/∂w₁ &nbsp;&nbsp;&nbsp; new w₂ = w₂ − η · ∂L/∂w₂ &nbsp;&nbsp;&nbsp; new b = b − η · ∂L/∂b
+  </div>
+  <p>Symbol by symbol: <code>η</code> (eta) is the <strong>learning rate</strong> from lesson 7 — the step size, how far you move per update. <code>∂L/∂w₁</code> is the gradient from lesson 8 — "if w₁ grew a little, how fast would the loss L rise?" The minus sign is the whole trick: move <em>against</em> the rise, downhill.</p>
+  <p>The compact form treats all parameters as one vector <strong>w</strong> (a list of numbers, like lesson 3) and all gradients as one vector ∇L:</p>
+  <div class="formula" style="text-align:center; font-size:1.3rem">
+    <strong>w</strong> ← <strong>w</strong> − η ∇L
+  </div>
+  <p>That is exactly the gradient descent rule on <a href="https://en.wikipedia.org/wiki/Gradient_descent">Wikipedia</a> (xₙ₊₁ = xₙ − η∇f(xₙ), "for a small enough step size or learning rate η"). And the third way is the one you'll actually type — in the programs below, the update step is literally:</p>
+  <pre class="codeblock" style="border-radius:6px"><code>w1 -= lr * gw1     // same formula, shortest spelling</code></pre>
+  <p>One last connector. The loss is the <strong>MSE</strong> from lesson 6 — "the average of the squares of the errors" (<a href="https://en.wikipedia.org/wiki/Mean_squared_error">Wikipedia</a>): mean of (a − y)² over the 4 examples, where <code>a</code> is the activation and <code>y</code> the target. Backprop (lesson 8) chains through it to give, for each example:</p>
+  <div class="formula" style="text-align:center; font-size:1.2rem">
+    ∂L/∂w₁ = 2(a − y) · a(1 − a) · x₁
+  </div>
+  <p>Read it as three chained links: <code>2(a − y)</code> is the slope of the squared error; <code>a(1 − a)</code> is the sigmoid's own derivative — σ′(z) = σ(z)(1 − σ(z)) (<a href="https://en.wikipedia.org/wiki/Logistic_function">Wikipedia, logistic function</a>); and <code>x₁</code> appears because w₁ enters z only through the product w₁·x₁. For the bias, that last factor is just 1. Average those over the 4 examples and you have the gradients the loop uses.</p>
+
+  <h2>The real run — 30 lines, no libraries</h2>
+  <p>Now the same training as a complete program, in both languages, standard library only. The Python runs in <a href="https://colab.research.google.com">Google Colab</a> as-is; the Swift runs in an Xcode playground. This is the exact code I ran — and below it, the exact output it printed.</p>
+
+  <div class="tabs">
+    <button class="tab active" data-t="swift">Swift</button>
+    <button class="tab" data-t="py">Python</button>
+  </div>
+
+  <pre class="codeblock" data-lang="swift"><code>import Foundation
+
+func sigmoid(_ z: Double) -> Double { 1 / (1 + exp(-z)) }
+
+let data: [(x: [Double], y: Double)] = [
+    ([0, 0], 0), ([0, 1], 0), ([1, 0], 0), ([1, 1], 1)
+]
+var w1 = 0.0, w2 = 0.0, b = 0.0
+let lr = 5.0
+
+for epoch in 1...300 {
+    var gw1 = 0.0, gw2 = 0.0, gb = 0.0, loss = 0.0
+    for (x, y) in data {
+        let a = sigmoid(w1*x[0] + w2*x[1] + b)        // forward
+        loss += (a - y) * (a - y)                     // loss
+        let d = 2 * (a - y) * a * (1 - a)             // backward: dL/dz
+        gw1 += d * x[0]; gw2 += d * x[1]; gb += d
+    }
+    loss /= 4; gw1 /= 4; gw2 /= 4; gb /= 4
+    w1 -= lr * gw1; w2 -= lr * gw2; b -= lr * gb      // update
+    if epoch == 1 || epoch % 50 == 0 {
+        print(String(format: "epoch %3d   loss %.4f", epoch, loss))
+    }
+}
+print("")
+for (x, y) in data {
+    let a = sigmoid(w1*x[0] + w2*x[1] + b)
+    print(String(format: "%d AND %d  ->  %.3f   (target %d)", Int(x[0]), Int(x[1]), a, Int(y)))
+}
+print("")
+print(String(format: "learned: w1=%.2f  w2=%.2f  b=%.2f", w1, w2, b))</code></pre>
+
+  <pre class="codeblock" data-lang="py" hidden><code>import math
+
+def sigmoid(z):
+    return 1 / (1 + math.exp(-z))
+
+data = [([0.0,0.0],0.0), ([0.0,1.0],0.0), ([1.0,0.0],0.0), ([1.0,1.0],1.0)]
+w1, w2, b = 0.0, 0.0, 0.0
+lr = 5.0
+
+for epoch in range(1, 301):
+    gw1 = gw2 = gb = 0.0
+    loss = 0.0
+    for (x1, x2), y in data:
+        a = sigmoid(w1*x1 + w2*x2 + b)        # forward
+        loss += (a - y)**2                    # loss
+        d = 2 * (a - y) * a * (1 - a)         # backward: dL/dz
+        gw1 += d * x1; gw2 += d * x2; gb += d
+    loss /= 4; gw1 /= 4; gw2 /= 4; gb /= 4
+    w1 -= lr*gw1; w2 -= lr*gw2; b -= lr*gb    # update
+    if epoch == 1 or epoch % 50 == 0:
+        print(f"epoch {epoch:3d}   loss {loss:.4f}")
+
+print()
+for (x1, x2), y in data:
+    a = sigmoid(w1*x1 + w2*x2 + b)
+    print(f"{int(x1)} AND {int(x2)}  ->  {a:.3f}   (target {int(y)})")
+print()
+print(f"learned: w1={w1:.2f}  w2={w2:.2f}  b={b:.2f}")</code></pre>
+
+  <p>Both programs print <strong>exactly</strong> this (run them — same start, same steps, same floats):</p>
+  <pre class="codeblock" style="border-radius:6px"><code>epoch   1   loss 0.2500
+epoch  50   loss 0.0261
+epoch 100   loss 0.0124
+epoch 150   loss 0.0079
+epoch 200   loss 0.0057
+epoch 250   loss 0.0044
+epoch 300   loss 0.0036
+
+0 AND 0  ->  0.000   (target 0)
+0 AND 1  ->  0.065   (target 0)
+1 AND 0  ->  0.065   (target 0)
+1 AND 1  ->  0.923   (target 1)
+
+learned: w1=5.14  w2=5.14  b=-7.81</code></pre>
+  <p>Pause on what just happened. Thirty lines of stdlib code, no ML framework, no magic — and a program <em>found weights</em> that compute AND, starting from nothing, by repeatedly measuring its error and stepping downhill. In lesson 2, the intelligence was yours: you chose the weights. Here, the intelligence is in the loop. Scale this exact loop up — more neurons, more layers, more data — and you get the systems making headlines. That's not a metaphor; it's the same five lines.</p>
+
+  <div class="sidenote"><strong>Batch vs. SGD — one vocabulary note.</strong> Our loop sums the gradients of all 4 examples before making one update per epoch — that's "batch" gradient descent: w := w − (η/n)·Σ∇Lᵢ. With 60,000 examples that's slow, so real training updates after every small random <em>mini-batch</em> of examples — or even after every single one, called <em>stochastic gradient descent</em> (SGD), where "the true gradient … is approximated by a gradient at a single sample" (<a href="https://en.wikipedia.org/wiki/Stochastic_gradient_descent">Wikipedia</a>). Same loop, just more frequent, noisier updates. Nielsen trains his digit network with mini-batches of 10 and η = 3.0 (<a href="http://neuralnetworksanddeeplearning.com/chap1.html">ch.&nbsp;1</a>) — so our η = 5 on a toy problem is less exotic than it looks.</div>
+
+  <h2>Check yourself</h2>
+  <p>No peeking back. Pull it from memory.</p>
+
+  <div class="quiz" id="quiz1">
+    <div class="q">1. What is the correct order of one trip around the training loop?</div>
+    <button class="opt" data-c="1">forward pass, loss, backward pass, update</button>
+    <button class="opt" data-c="0">loss, forward pass, update, backward pass</button>
+    <button class="opt" data-c="0">backward pass, update, forward pass, loss</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz2">
+    <div class="q">2. What does one epoch of training mean?</div>
+    <button class="opt" data-c="0">every weight got updated exactly once</button>
+    <button class="opt" data-c="0">one training example was seen once</button>
+    <button class="opt" data-c="1">every training example was seen once</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz3">
+    <div class="q">3. In today's run, where did the working AND weights come from?</div>
+    <button class="opt" data-c="0">the forward pass computed them instantly</button>
+    <button class="opt" data-c="1">the update step found them gradually</button>
+    <button class="opt" data-c="0">the loss function picked them beforehand</button>
+    <div class="fb"></div>
+  </div>
+
+  <h2>Watch this next</h2>
+  <p>Primary source: <a href="https://www.youtube.com/watch?v=VMj-3S1tku0"><strong>Andrej Karpathy — "The spelled-out intro to neural networks and backpropagation: building micrograd"</strong></a>. Karpathy (former Tesla AI director) builds this exact loop — forward, loss, backward, update — from empty Python file to a trained network, narrating every line. His <a href="https://karpathy.ai/zero-to-hero.html">course page</a> promises it "only assumes basic knowledge of Python and a vague recollection of calculus from high school" — which, after lessons 7 and 8, you now comfortably exceed. It's long; even the first hour will make lesson 10 feel familiar.</p>
+
+  <footer>
+    <p><strong>Your win today:</strong> you assembled forward → loss → backward → update into the canonical training loop and ran it for real — a neuron learned the AND weights you once had to set by hand.</p>
+    <p>Previous: <a href="0008-backpropagation.html">Lesson 8 — Backpropagation</a> · Next: <a href="0010-train-a-tiny-network-from-scratch.html">Lesson 10 — Train a Tiny Network from Scratch</a></p>
+  </footer>
+</div>
+
+<script>
+  const $=id=>document.getElementById(id);
+  const sig=z=>1/(1+Math.exp(-z));
+
+  // --- training widget: identical math to the Swift/Python programs ---
+  const DATA=[[[0,0],0],[[0,1],0],[[1,0],0],[[1,1],1]];
+  const LR=5, EPOCHS=300;
+  let W;
+  function resetState(){ W={w1:0,w2:0,b:0,epoch:0,losses:[],running:false}; }
+
+  function stepEpoch(){
+    let g1=0,g2=0,gb=0,loss=0;
+    for(const [[x1,x2],y] of DATA){
+      const a=sig(W.w1*x1+W.w2*x2+W.b);          // forward
+      loss+=(a-y)*(a-y);                         // loss
+      const d=2*(a-y)*a*(1-a);                   // backward: dL/dz
+      g1+=d*x1; g2+=d*x2; gb+=d;
+    }
+    loss/=4; g1/=4; g2/=4; gb/=4;
+    W.w1-=LR*g1; W.w2-=LR*g2; W.b-=LR*gb;        // update
+    W.epoch++; W.losses.push(loss);
+  }
+
+  const cv=$('curve'), ctx=cv.getContext('2d');
+  function drawCurve(){
+    const L=40,R=10,T=14,B=24,w=cv.width-L-R,h=cv.height-T-B,maxL=0.26;
+    ctx.clearRect(0,0,cv.width,cv.height);
+    ctx.strokeStyle='#d8d4c8'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(L,T); ctx.lineTo(L,T+h); ctx.lineTo(L+w,T+h); ctx.stroke();
+    const y25=T+h-(0.25/maxL)*h;
+    ctx.setLineDash([4,4]); ctx.beginPath();
+    ctx.moveTo(L,y25); ctx.lineTo(L+w,y25); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='#5a564c'; ctx.font='11px Menlo,monospace';
+    ctx.fillText('0.25',6,y25+4); ctx.fillText('0',28,T+h+4);
+    ctx.fillText('loss',6,T+2); ctx.fillText('epoch 300',L+w-62,T+h+16);
+    if(!W.losses.length) return;
+    ctx.strokeStyle='#7a1f1f'; ctx.lineWidth=2; ctx.beginPath();
+    W.losses.forEach((ls,i)=>{
+      const x=L+((i+1)/EPOCHS)*w, y=T+h-(Math.min(ls,maxL)/maxL)*h;
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+  }
+
+  function updateUI(){
+    DATA.forEach(([[x1,x2]],i)=>{
+      const a=sig(W.w1*x1+W.w2*x2+W.b);
+      $('f'+i).style.width=(a*100)+'%'; $('o'+i).textContent=a.toFixed(3);
+    });
+    $('params').textContent=
+      'w₁ = '+W.w1.toFixed(2)+'   w₂ = '+W.w2.toFixed(2)+'   b = '+W.b.toFixed(2);
+    const last=W.losses.length?W.losses[W.losses.length-1]:0.25;
+    $('status').textContent='epoch '+W.epoch+' · loss '+last.toFixed(4);
+  }
+
+  function frame(){
+    for(let k=0;k<2 && W.epoch<EPOCHS;k++) stepEpoch();
+    updateUI(); drawCurve();
+    if(W.epoch<EPOCHS){ requestAnimationFrame(frame); }
+    else { W.running=false; $('train').textContent='trained — reset to rerun'; }
+  }
+
+  $('train').addEventListener('click',()=>{
+    if(W.running||W.epoch>=EPOCHS) return;
+    W.running=true; $('train').disabled=true;
+    requestAnimationFrame(frame);
+  });
+  $('reset').addEventListener('click',()=>{
+    resetState();
+    $('train').disabled=false; $('train').textContent='train 300 epochs';
+    updateUI(); drawCurve();
+  });
+  resetState(); updateUI(); drawCurve();
+
+  // --- tabs ---
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      const t=tab.dataset.t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.t===t));
+      document.querySelectorAll('.codeblock[data-lang]').forEach(c=>c.hidden=(c.dataset.lang!==t));
+    });
+  });
+
+  // --- quiz ---
+  document.querySelectorAll('.quiz').forEach(q=>{
+    q.querySelectorAll('.opt').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        if(q.dataset.done) return;
+        q.dataset.done=1;
+        const correct=btn.dataset.c==='1';
+        btn.classList.add(correct?'correct':'wrong');
+        if(!correct){
+          q.querySelector('.opt[data-c="1"]').classList.add('correct');
+        }
+        q.querySelector('.fb').textContent = correct ? 'Correct — locked in.' : 'Not quite — the green one is right.';
+      });
+    });
+  });
+</script>
+<script>
+(function(){
+  var b=document.getElementById('themeToggle');
+  function sync(){b.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀':'☾';}
+  b.addEventListener('click',function(){
+    var next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{localStorage.setItem('book-theme',next);}catch(e){}
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

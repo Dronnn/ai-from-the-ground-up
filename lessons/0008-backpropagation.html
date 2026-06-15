@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 8 — Backpropagation</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.55; margin:0; padding:3rem 1.2rem 5rem;
+  }
+  .wrap{max-width:680px; margin:0 auto}
+  .kicker{font-variant:small-caps; letter-spacing:.08em; color:var(--accent);
+    font-size:.95rem; margin-bottom:.2rem}
+  h1{font-size:2.1rem; line-height:1.15; margin:.1rem 0 1.2rem; font-weight:600}
+  h2{font-size:1.3rem; margin:2.4rem 0 .6rem; font-weight:600}
+  p{margin:.7rem 0}
+  .lead{font-size:1.12rem; color:#33312c}
+  .formula{
+    background:var(--soft); border-left:3px solid var(--accent);
+    padding:.9rem 1.1rem; margin:1.2rem 0; font-size:1.15rem;
+    font-family:"Latin Modern Math","Cambria Math",Georgia,serif; overflow-x:auto;
+  }
+  code{font-family:"SF Mono",Menlo,Consolas,monospace; font-size:.92em;
+    background:var(--soft); padding:.1em .35em; border-radius:3px}
+  a{color:var(--accent)}
+  .sidenote{font-size:.9rem; color:#5a564c; border-top:1px solid var(--rule);
+    border-bottom:1px solid var(--rule); padding:.7rem 0; margin:1.4rem 0}
+
+  /* interactive widget */
+  .widget{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .row{display:grid; grid-template-columns:90px 1fr 70px; gap:.8rem; align-items:center;
+    margin:.55rem 0}
+  .row label{font-variant:small-caps; letter-spacing:.04em; color:#444}
+  input[type=range]{width:100%}
+  .val{font-family:"SF Mono",Menlo,monospace; text-align:right}
+  .out{margin-top:1rem; padding-top:1rem; border-top:1px dashed var(--rule)}
+  .bar{height:22px; background:var(--soft); border-radius:11px; overflow:hidden; margin-top:.4rem}
+  .fill{height:100%; width:0; background:var(--accent); transition:width .12s}
+  .big{font-size:1.5rem; font-family:"SF Mono",Menlo,monospace}
+
+  /* chain widget */
+  .chain{display:flex; align-items:stretch; gap:.25rem; flex-wrap:wrap; justify-content:center}
+  .cnode{border:1px solid var(--rule); border-radius:6px; padding:.45rem .55rem;
+    min-width:104px; flex:1 1 104px; text-align:center; background:var(--paper);
+    transition:border-color .2s, background .2s}
+  .cnode.lit{border-color:var(--accent); background:#fbf4ee}
+  .cname{font-variant:small-caps; letter-spacing:.04em; font-size:.82rem; color:#444}
+  .csub{font-size:.78rem; color:#5a564c; font-family:"SF Mono",Menlo,monospace}
+  .cv{font-family:"SF Mono",Menlo,monospace; font-size:1.05rem; margin-top:.2rem}
+  .cd{font-family:"SF Mono",Menlo,monospace; font-size:.8rem; color:var(--accent);
+    margin-top:.3rem; border-top:1px dashed var(--rule); padding-top:.25rem;
+    visibility:hidden; min-height:2.4em}
+  .cd.show{visibility:visible}
+  .carrow{align-self:center; color:#999; font-size:1.15rem; padding:0 .05rem}
+  .btnrow{display:flex; gap:.5rem; margin-top:1rem; flex-wrap:wrap}
+  .btn{font:inherit; font-size:.9rem; font-variant:small-caps; letter-spacing:.05em;
+    border:1px solid var(--rule); background:var(--soft); padding:.45rem 1rem;
+    border-radius:6px; cursor:pointer}
+  .btn.primary{background:#272521; color:#f3f0e7; border-color:#272521}
+  .btn:disabled{opacity:.35; cursor:default}
+  .status{margin-top:.9rem; font-size:.95rem; min-height:2.6em; color:#33312c}
+  .status code{font-size:.85em}
+
+  /* code */
+  .tabs{display:flex; gap:.4rem; margin:1.2rem 0 0}
+  .tab{font:inherit; font-size:.9rem; font-variant:small-caps; letter-spacing:.05em;
+    border:1px solid var(--rule); border-bottom:none; background:var(--soft);
+    padding:.45rem 1rem; border-radius:6px 6px 0 0; cursor:pointer; color:#666}
+  .tab.active{background:#272521; color:#f3f0e7}
+  .codeblock{margin:0 0 1rem; background:#272521; color:#f3f0e7; border-radius:0 6px 6px 6px;
+    padding:1rem 1.1rem; overflow-x:auto}
+  .codeblock code{background:none; color:inherit; font-size:.86rem; line-height:1.5;
+    font-family:"SF Mono",Menlo,Consolas,monospace; white-space:pre}
+
+  /* quiz */
+  .quiz{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .q{font-weight:600; margin-bottom:.6rem}
+  .opt{display:block; width:100%; text-align:left; border:1px solid var(--rule);
+    background:var(--paper); padding:.6rem .8rem; margin:.4rem 0; border-radius:6px;
+    cursor:pointer; font:inherit}
+  .opt:hover{background:var(--soft)}
+  .opt.correct{border-color:var(--good); background:#eef7f0}
+  .opt.wrong{border-color:var(--bad); background:#f9eeee}
+  .fb{margin-top:.5rem; font-size:.95rem; min-height:1.2em}
+  footer{margin-top:3rem; border-top:1px solid var(--rule); padding-top:1rem;
+    font-size:.92rem; color:#5a564c}
+
+  /* dark theme: warm sepia night */
+  html[data-theme="dark"]{color-scheme:dark;
+    --ink:#e8e3d6; --paper:#201d18; --rule:#3d382f; --accent:#c97b6f;
+    --soft:#2a2620; --good:#8fbf9c; --bad:#d98a80}
+  html[data-theme="dark"] .lead{color:#cfc9bb}
+  html[data-theme="dark"] .sidenote, html[data-theme="dark"] footer,
+  html[data-theme="dark"] .phase-sub, html[data-theme="dark"] .desc,
+  html[data-theme="dark"] .sub, html[data-theme="dark"] .note{color:#a89f8d}
+  html[data-theme="dark"] [style*="#5a564c"]{color:#a89f8d!important}
+  html[data-theme="dark"] .quiz{background:#26221c}
+  html[data-theme="dark"] .opt.correct{background:#2a3a2e}
+  html[data-theme="dark"] .opt.wrong{background:#3d2a27}
+  html[data-theme="dark"] .tab{color:#9a9183}
+  /* widgets stay light: printed-figure look, keeps all verified canvas/SVG colors intact */
+  html[data-theme="dark"] .widget{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+    background:#fff; color:#1a1a1a; color-scheme:light}
+  .themetoggle{position:fixed; top:14px; right:14px; z-index:50; width:38px; height:38px;
+    border-radius:50%; border:1px solid var(--rule); background:var(--soft); color:var(--ink);
+    font-size:1rem; cursor:pointer; line-height:1; font-family:inherit}
+  .themetoggle:hover{border-color:var(--accent)}
+  @media print{.themetoggle{display:none}
+    html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+      --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a}}
+</style>
+<script>(function(){var t=localStorage.getItem('book-theme');
+if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+document.documentElement.setAttribute('data-theme',t);})()</script>
+</head>
+<body>
+<button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
+<div class="wrap">
+  <div class="kicker">AI Foundations · Lesson 8 · Phase 3 — How a network learns</div>
+  <h1>Backpropagation — the Error Flows Backwards</h1>
+  <p class="lead">Lesson 7 ended on a cliffhanger: gradient descent can walk a weight downhill, but only if someone hands it the slope <code>dL/dw</code> — how much the loss changes when that weight nudges. Today you compute that slope yourself, by hand, through a whole neuron. The trick is one rule, and it's just multiplication. This is the algorithm that makes every trained model — including the one you'll train in Phase 4 — possible.</p>
+
+  <h2>The problem: w is buried at the end of a chain</h2>
+  <p>Take the smallest possible "network": one neuron, one input, learning from one example. You know every stage already — the weighted sum from lesson 1, the squared-error loss from lesson 6 (with a single example, the average in MSE is just that one term):</p>
+  <div class="formula" style="text-align:center">
+    x &nbsp;→&nbsp; z = w·x + b &nbsp;→&nbsp; a = σ(z) &nbsp;→&nbsp; L = (a − y)²
+  </div>
+  <p>Here's the trouble. The loss <code>L</code> never touches <code>w</code> directly. Wiggle <code>w</code> and the effect travels through a <strong>chain</strong>: <code>w</code> moves <code>z</code>, <code>z</code> moves <code>a</code>, and only <code>a</code> moves <code>L</code>. So "how much does <code>L</code> change per nudge of <code>w</code>" has to account for every link. In a real network a weight in layer 1 might be ten links away from the loss — same problem, longer chain.</p>
+
+  <h2>Feel it: step through the chain</h2>
+  <p>Concrete numbers: input <code>x = 1.0</code>, target <code>y = 1.0</code>, current weight <code>w = 0.5</code>, bias <code>b = 0.0</code>. Press <strong>forward</strong> three times — values fill left to right, exactly the forward pass from lesson 4. Then press <strong>backward</strong> three times and watch each link report its own <em>local slope</em> ("if my input nudges by a tiny amount, my output moves this many times that nudge") while a running product accumulates right to left. The final number is the prize: <code>dL/dw</code>.</p>
+
+  <div class="widget">
+    <div class="chain">
+      <div class="cnode lit" id="nx">
+        <div class="cname">input</div>
+        <div class="csub">given</div>
+        <div class="cv">x = 1.0</div>
+        <div class="cd" id="dx"></div>
+      </div>
+      <div class="carrow">→</div>
+      <div class="cnode" id="nz">
+        <div class="cname">weighted sum</div>
+        <div class="csub">w 0.5 · b 0.0</div>
+        <div class="cv" id="vz">z = ?</div>
+        <div class="cd" id="dz">dz/dw = x = 1.0<br>dz/db = 1.0</div>
+      </div>
+      <div class="carrow">→</div>
+      <div class="cnode" id="na">
+        <div class="cname">activation</div>
+        <div class="csub">a = σ(z)</div>
+        <div class="cv" id="va">a = ?</div>
+        <div class="cd" id="da">da/dz = ?</div>
+      </div>
+      <div class="carrow">→</div>
+      <div class="cnode" id="nl">
+        <div class="cname">loss</div>
+        <div class="csub">(a − y)² · y 1.0</div>
+        <div class="cv" id="vl">L = ?</div>
+        <div class="cd" id="dl">dL/da = ?</div>
+      </div>
+    </div>
+    <div class="btnrow">
+      <button class="btn primary" id="fwd">forward ▸</button>
+      <button class="btn" id="bwd" disabled>◂ backward</button>
+      <button class="btn" id="rst">reset</button>
+    </div>
+    <div class="status" id="st">Press <strong>forward</strong> to push the data through, left to right.</div>
+  </div>
+
+  <h2>Name what you just did: the chain rule</h2>
+  <p>The rule you just used has a name — the <strong>chain rule</strong> — and it says exactly one thing: <em>to get the slope through a chain, multiply the local slopes of the links.</em> Three ways to write it, easiest first.</p>
+
+  <h3 style="margin:1.4rem 0 .3rem; font-size:1.05rem">① The easy way — spelled out</h3>
+  <div class="formula" style="font-size:1.02rem">
+    (how L moves per nudge of w) =<br>
+    &nbsp;&nbsp;(how L moves per nudge of a) × (how a moves per nudge of z) × (how z moves per nudge of w)
+  </div>
+  <p>Why multiplication? Nudge <code>w</code> by a hair. That hair gets scaled by the first link to become a nudge in <code>z</code>, scaled again into a nudge in <code>a</code>, scaled again into a change in <code>L</code>. Three scalings in a row — scalings multiply. <strong>If you only remember this one, you understand backpropagation.</strong></p>
+
+  <h3 style="margin:1.6rem 0 .3rem; font-size:1.05rem">② The compact way — slope notation</h3>
+  <p>"How L moves per nudge of w" is what lesson 7 called a derivative, written <code>dL/dw</code>. Same sentence, shorter symbols:</p>
+  <div class="formula" style="text-align:center; font-size:1.25rem">
+    dL/dw = dL/da · da/dz · dz/dw<br>
+    dL/db = dL/da · da/dz · dz/db
+  </div>
+  <p>Read each fraction-looking thing as one symbol: "slope of the top per nudge of the bottom." Notice the bookkeeping beauty: <code>da</code> appears on the bottom then on the top, <code>dz</code> likewise — the chain links snap together like LEGO. (In papers you'll see the curly <code>∂</code> instead of <code>d</code> — <a href="https://www.3blue1brown.com/lessons/backpropagation-calculus">3Blue1Brown writes ∂C/∂w</a>, where their <code>C</code>, "cost", is our loss <code>L</code>, as lesson 7 flagged. The <code>∂</code> flags "this function has several knobs; we're nudging just this one." Read it exactly the same way.)</p>
+
+  <h3 style="margin:1.6rem 0 .3rem; font-size:1.05rem">③ The pro way — local slopes filled in</h3>
+  <p>Each link in <em>our</em> chain has a known formula, so each local slope does too:</p>
+  <div class="formula" style="font-size:1.08rem">
+    dL/da = 2(a − y) &nbsp;&nbsp;&nbsp;<span style="color:#5a564c">because L = (a − y)²</span><br>
+    da/dz = σ(z)·(1 − σ(z)) = a·(1 − a) &nbsp;&nbsp;&nbsp;<span style="color:#5a564c">the sigmoid's own slope</span><br>
+    dz/dw = x &nbsp;&nbsp;and&nbsp;&nbsp; dz/db = 1 &nbsp;&nbsp;&nbsp;<span style="color:#5a564c">because z = w·x + b</span>
+  </div>
+  <p>Where do these come from?</p>
+  <p><strong>dL/da = 2(a − y).</strong> This is the slope of the loss bowl from lesson 7: <code>L = (a − y)²</code> is a parabola in <code>a</code>, and its slope at any point is twice the miss. (Sanity check by nudging, lesson-7 style: at our numbers <code>2(a − y) = −0.755081</code>, and measuring <code>L</code> just before and just after a tiny nudge of <code>a</code> gives <code>−0.755081</code> too.)</p>
+  <p><strong>da/dz = σ(z)(1 − σ(z)).</strong> The famous sigmoid identity: the sigmoid's slope at any point is <em>its own output times one minus its own output</em> (<a href="https://en.wikipedia.org/wiki/Logistic_function">Wikipedia: Logistic function</a>, where it appears as <code>f(x)(1 − f(x))</code>). Two gifts in one. First, no new function to evaluate — you already computed <code>a = σ(z)</code> during the forward pass, so the slope is just <code>a·(1 − a)</code>, almost free. Second, you can verify it numerically, no algebra required: at <code>z = 0.5</code>, <code>σ(z)(1 − σ(z)) = 0.2350037</code>, and nudging <code>z</code> and re-measuring <code>σ</code> gives <code>0.2350037</code>. Identity confirmed by experiment.</p>
+  <p><strong>dz/dw = x.</strong> Since <code>z = w·x + b</code>, the weight's effect on <code>z</code> is scaled by whatever input rides on that connection. Nudge <code>w</code> by 0.01 and <code>z</code> moves by <code>0.01·x</code>. And <code>dz/db = 1</code>: the bias adds in raw, so its nudge passes straight through.</p>
+
+  <h2>The worked numbers, end to end</h2>
+  <p>Here is the full pass you stepped through in the widget, on paper. Forward, left to right:</p>
+  <div class="formula" style="font-size:1.05rem">
+    z = 0.5·1.0 + 0.0 = 0.5<br>
+    a = σ(0.5) = 0.622459<br>
+    L = (0.622459 − 1)² = 0.142537
+  </div>
+  <p>Backward, right to left — each local slope, then the multiplication:</p>
+  <div class="formula" style="font-size:1.05rem">
+    dL/da = 2(0.622459 − 1) = −0.755081<br>
+    da/dz = 0.622459·(1 − 0.622459) = 0.235004<br>
+    dz/dw = x = 1.0 &nbsp;&nbsp;·&nbsp;&nbsp; dz/db = 1.0<br>
+    dL/dw = (−0.755081)·(0.235004)·(1.0) = <strong>−0.177447</strong><br>
+    dL/db = (−0.755081)·(0.235004)·(1.0) = <strong>−0.177447</strong>
+  </div>
+  <p>Sanity-check the sign, lesson-7 style: the slope is negative, so gradient descent steps <em>opposite</em> it — it will <em>increase</em> <code>w</code>. Does that make sense? Our activation 0.622 is below the target 1.0; a bigger <code>w</code> raises <code>z</code>, which raises <code>a</code>, which shrinks the miss. The math agrees with common sense. That's the feeling to chase.</p>
+  <div class="sidenote"><strong>Why do dL/dw and dL/db come out identical?</strong> Only because <code>x = 1.0</code> here, which makes <code>dz/dw = x = 1 = dz/db</code>. Change the input to <code>x = 2.0</code> in the code below and the shared part recomputes through <code>z = 1.0</code>, giving <code>dL/dw = −0.211508</code> but <code>dL/db = −0.105754</code> — the weight's slope doubles with the input, the bias's doesn't. Try it.</div>
+
+  <h2>Write it in code — and let the computer audit you</h2>
+  <p>The whole backward pass is six lines: three local slopes, two multiplications, done. The last block is the best habit in this course: <em>don't trust the calculus — measure it.</em> Nudge <code>w</code> by 0.00001, re-run the forward pass, and see how much <code>L</code> actually moved per unit of nudge. Paste the Python into <a href="https://colab.research.google.com">Colab</a> and run it; the Swift runs in an Xcode playground.</p>
+
+  <div class="tabs">
+    <button class="tab active" data-t="swift">Swift</button>
+    <button class="tab" data-t="py">Python</button>
+  </div>
+
+  <pre class="codeblock" data-lang="swift"><code>import Foundation
+
+func sigmoid(_ z: Double) -&gt; Double { 1 / (1 + exp(-z)) }
+
+let x = 1.0, y = 1.0      // one training example
+let w = 0.5, b = 0.0      // current parameters
+
+// ---- forward pass: left to right ----
+let z = w * x + b         // 0.5
+let a = sigmoid(z)        // 0.622459...
+let L = (a - y) * (a - y) // 0.142537...
+
+// ---- backward pass: three local slopes ----
+let dL_da = 2 * (a - y)   // -0.755081...
+let da_dz = a * (1 - a)   // sigmoid's slope = 0.235004...
+let dz_dw = x             // 1.0
+let dz_db = 1.0
+
+// ---- chain rule: multiply along the chain ----
+let dL_dw = dL_da * da_dz * dz_dw
+let dL_db = dL_da * da_dz * dz_db
+print(dL_dw, dL_db)       // -0.17744691734927373 twice
+
+// ---- trust, but verify: nudge w and re-measure L ----
+let eps = 1e-5
+let aNudged = sigmoid((w + eps) * x + b)
+let LNudged = (aNudged - y) * (aNudged - y)
+print((LNudged - L) / eps)   // -0.1774461477838107</code></pre>
+
+  <pre class="codeblock" data-lang="py" hidden><code>import math
+
+def sigmoid(z):
+    return 1 / (1 + math.exp(-z))
+
+x, y = 1.0, 1.0           # one training example
+w, b = 0.5, 0.0           # current parameters
+
+# ---- forward pass: left to right ----
+z = w * x + b             # 0.5
+a = sigmoid(z)            # 0.622459...
+L = (a - y) ** 2          # 0.142537...
+
+# ---- backward pass: three local slopes ----
+dL_da = 2 * (a - y)       # -0.755081...
+da_dz = a * (1 - a)       # sigmoid's slope = 0.235004...
+dz_dw = x                 # 1.0
+dz_db = 1.0
+
+# ---- chain rule: multiply along the chain ----
+dL_dw = dL_da * da_dz * dz_dw
+dL_db = dL_da * da_dz * dz_db
+print(dL_dw, dL_db)       # -0.17744691734927373 twice
+
+# ---- trust, but verify: nudge w and re-measure L ----
+eps = 1e-5
+L_nudged = (sigmoid((w + eps) * x + b) - y) ** 2
+print((L_nudged - L) / eps)   # -0.1774461477838107</code></pre>
+
+  <p class="sidenote">The nudge experiment prints <code>−0.177446<u>1</u>…</code> against the chain rule's <code>−0.177446<u>9</u>…</code> — the first six digits match. The leftover tail is the price of using a finite nudge instead of an infinitely small one (shrink <code>eps</code> and it gets closer). When the two methods agree, your backward pass is correct. Real ML engineers use this exact trick — Stanford's <a href="https://cs231n.github.io/neural-networks-3/">CS231n notes</a> call it a <em>gradient check</em>: "comparing the analytic gradient to the numerical gradient."</p>
+
+  <h2>Zoom out: that was backpropagation</h2>
+  <p>What you did — walk the chain backwards, multiply local slopes, read off a slope for every parameter — <em>is</em> the algorithm. <strong>Backpropagation</strong> computes the gradient of the loss with respect to every weight and bias in a network; in <a href="https://www.3blue1brown.com/lessons/backpropagation">3Blue1Brown's</a> words, it is "an algorithm for computing that negative gradient" — the vector that gradient descent then follows. Two things make it scale to millions of weights:</p>
+  <p><strong>Shared work.</strong> Notice <code>dL/dw</code> and <code>dL/db</code> reused the same running product <code>dL/da · da/dz = −0.177447</code> and only differed in the last factor. In a deep network that running product keeps flowing right to left, layer by layer; each layer multiplies in its local slopes and passes the product on. Nothing is recomputed — one backward sweep prices <em>every</em> parameter. That is why it's called <em>back</em>-propagation: the error signal literally flows backwards through the same wiring the data flowed forward through.</p>
+  <p><strong>Local rules.</strong> No link needs to know the whole network — each stage only reports its own local slope, like each station on an assembly line knowing only its own machine. The chain rule glues the reports together. With lesson 7's update step <code>w ← w − η·dL/dw</code>, you now hold both halves of learning. Lesson 9 snaps them into a loop.</p>
+
+  <h2>Check yourself</h2>
+  <p>No peeking back. Pull it from memory.</p>
+
+  <div class="quiz" id="quiz1">
+    <div class="q">1. How does the chain rule combine the local slopes along w → z → a → L?</div>
+    <button class="opt" data-c="0">average them together along the chain</button>
+    <button class="opt" data-c="1">multiply them together along the chain</button>
+    <button class="opt" data-c="0">subtract them pairwise along the chain</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz2">
+    <div class="q">2. Using a = σ(z), the sigmoid's own slope da/dz equals:</div>
+    <button class="opt" data-c="1">a multiplied by one minus a</button>
+    <button class="opt" data-c="0">a multiplied by one plus a</button>
+    <button class="opt" data-c="0">a divided by one minus a</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz3">
+    <div class="q">3. In z = w·x + b, the local slope dz/dw is:</div>
+    <button class="opt" data-c="0">the bias value b</button>
+    <button class="opt" data-c="0">the weight value w</button>
+    <button class="opt" data-c="1">the input value x</button>
+    <div class="fb"></div>
+  </div>
+
+  <h2>Watch this next</h2>
+  <p>Primary source: <a href="https://www.3blue1brown.com/lessons/backpropagation"><strong>"What is backpropagation really doing?" by 3Blue1Brown</strong></a> — the error-flowing-backwards intuition, animated across a full digit-recognizing network. Then, if you want to see today's exact chain (same <code>(a − y)²</code> loss, same three local slopes) drawn layer by layer with the ∂ notation, the follow-up <a href="https://www.3blue1brown.com/lessons/backpropagation-calculus">"Backpropagation calculus"</a> is this lesson's big sibling.</p>
+
+  <footer>
+    <p><strong>Your win today:</strong> you hand-computed a complete backward pass — dL/dw = dL/da · da/dz · dz/dw = −0.177447 — and a nudge experiment in code confirmed your number.</p>
+    <p>Previous: <a href="0007-gradient-descent.html">Lesson 7 — Gradient Descent</a> · Next: <a href="0009-the-training-loop.html">Lesson 9 — The Training Loop</a></p>
+  </footer>
+</div>
+
+<script>
+  const $=id=>document.getElementById(id);
+  const sig=z=>1/(1+Math.exp(-z));
+  // the worked example — same numbers as the text
+  const X=1.0, Y=1.0, W=0.5, B=0.0;
+  const Z=W*X+B, A=sig(Z), L=(A-Y)*(A-Y);
+  const dLda=2*(A-Y), dadz=A*(1-A), dzdw=X, dzdb=1.0;
+  const f=n=>n.toFixed(4);
+
+  let fstep=0, bstep=0;
+  const fwdBtn=$('fwd'), bwdBtn=$('bwd'), rstBtn=$('rst'), st=$('st');
+
+  function render(){
+    $('nz').classList.toggle('lit', fstep>=1);
+    $('na').classList.toggle('lit', fstep>=2);
+    $('nl').classList.toggle('lit', fstep>=3);
+    $('vz').textContent = fstep>=1 ? 'z = '+f(Z) : 'z = ?';
+    $('va').textContent = fstep>=2 ? 'a = '+f(A) : 'a = ?';
+    $('vl').textContent = fstep>=3 ? 'L = '+f(L) : 'L = ?';
+    $('dl').textContent = 'dL/da = '+f(dLda);
+    $('da').textContent = 'da/dz = '+f(dadz);
+    $('dl').classList.toggle('show', bstep>=1);
+    $('da').classList.toggle('show', bstep>=2);
+    $('dz').classList.toggle('show', bstep>=3);
+    fwdBtn.disabled = fstep>=3;
+    bwdBtn.disabled = fstep<3 || bstep>=3;
+  }
+
+  fwdBtn.addEventListener('click',()=>{
+    fstep++;
+    if(fstep===1) st.innerHTML='<code>z = w·x + b = 0.5·1.0 + 0.0 = '+f(Z)+'</code> — the weighted sum, as in lesson 1.';
+    if(fstep===2) st.innerHTML='<code>a = σ(z) = σ('+f(Z)+') = '+f(A)+'</code> — squashed, as always.';
+    if(fstep===3) st.innerHTML='<code>L = (a − y)² = ('+f(A)+' − 1)² = '+f(L)+'</code> — the miss, priced. Forward done; now press <strong>backward</strong>.';
+    render();
+  });
+
+  bwdBtn.addEventListener('click',()=>{
+    bstep++;
+    if(bstep===1) st.innerHTML='Last link reports its local slope: <code>dL/da = 2(a − y) = '+f(dLda)+'</code>. Running product: <code>'+f(dLda)+'</code>.';
+    if(bstep===2) st.innerHTML='Sigmoid reports: <code>da/dz = a(1 − a) = '+f(dadz)+'</code>. Running product: <code>'+f(dLda)+' × '+f(dadz)+' = '+f(dLda*dadz)+'</code>.';
+    if(bstep===3) st.innerHTML='First link reports: <code>dz/dw = x = '+f(dzdw)+'</code>, <code>dz/db = '+f(dzdb)+'</code>. Final: <strong><code>dL/dw = '+f(dLda*dadz*dzdw)+'</code></strong>, <strong><code>dL/db = '+f(dLda*dadz*dzdb)+'</code></strong>. Gradient delivered.';
+    render();
+  });
+
+  rstBtn.addEventListener('click',()=>{
+    fstep=0; bstep=0;
+    st.innerHTML='Press <strong>forward</strong> to push the data through, left to right.';
+    render();
+  });
+
+  render();
+
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      const t=tab.dataset.t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.t===t));
+      document.querySelectorAll('.codeblock').forEach(c=>c.hidden=(c.dataset.lang!==t));
+    });
+  });
+
+  document.querySelectorAll('.quiz').forEach(q=>{
+    q.querySelectorAll('.opt').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        if(q.dataset.done) return;
+        q.dataset.done=1;
+        const correct=btn.dataset.c==='1';
+        btn.classList.add(correct?'correct':'wrong');
+        if(!correct){
+          q.querySelector('.opt[data-c="1"]').classList.add('correct');
+        }
+        q.querySelector('.fb').textContent = correct ? 'Correct — locked in.' : 'Not quite — the green one is right.';
+      });
+    });
+  });
+</script>
+<script>
+(function(){
+  var b=document.getElementById('themeToggle');
+  function sync(){b.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀':'☾';}
+  b.addEventListener('click',function(){
+    var next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{localStorage.setItem('book-theme',next);}catch(e){}
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

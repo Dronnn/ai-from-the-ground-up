@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 2 — The Neuron as Decision-Maker</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.55; margin:0; padding:3rem 1.2rem 5rem;
+  }
+  .wrap{max-width:680px; margin:0 auto}
+  .kicker{font-variant:small-caps; letter-spacing:.08em; color:var(--accent);
+    font-size:.95rem; margin-bottom:.2rem}
+  h1{font-size:2.1rem; line-height:1.15; margin:.1rem 0 1.2rem; font-weight:600}
+  h2{font-size:1.3rem; margin:2.4rem 0 .6rem; font-weight:600}
+  p{margin:.7rem 0}
+  .lead{font-size:1.12rem; color:#33312c}
+  .formula{
+    background:var(--soft); border-left:3px solid var(--accent);
+    padding:.9rem 1.1rem; margin:1.2rem 0; font-size:1.15rem;
+    font-family:"Latin Modern Math","Cambria Math",Georgia,serif; overflow-x:auto;
+  }
+  code{font-family:"SF Mono",Menlo,Consolas,monospace; font-size:.92em;
+    background:var(--soft); padding:.1em .35em; border-radius:3px}
+  a{color:var(--accent)}
+  .sidenote{font-size:.9rem; color:#5a564c; border-top:1px solid var(--rule);
+    border-bottom:1px solid var(--rule); padding:.7rem 0; margin:1.4rem 0}
+
+  /* interactive widget */
+  .widget{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .row{display:grid; grid-template-columns:90px 1fr 70px; gap:.8rem; align-items:center;
+    margin:.55rem 0}
+  .row label{font-variant:small-caps; letter-spacing:.04em; color:#444}
+  input[type=range]{width:100%}
+  .val{font-family:"SF Mono",Menlo,monospace; text-align:right}
+  .out{margin-top:1rem; padding-top:1rem; border-top:1px dashed var(--rule)}
+  .big{font-size:1.5rem; font-family:"SF Mono",Menlo,monospace}
+
+  /* widget extras for this lesson */
+  canvas{display:block; width:100%; max-width:480px; margin:0 auto;
+    border:1px solid var(--rule); border-radius:6px; background:#fff}
+  .seg{font:inherit; font-size:.9rem; font-variant:small-caps; letter-spacing:.05em;
+    border:1px solid var(--rule); background:var(--soft); padding:.4rem 1.1rem;
+    border-radius:6px; cursor:pointer; color:#666; margin-right:.4rem}
+  .seg.active{background:#272521; color:#f3f0e7}
+  .stat{font-family:"SF Mono",Menlo,monospace; font-size:.85rem; line-height:1.7;
+    margin:.6rem 0 0; white-space:pre}
+  .okmark{color:var(--good); font-weight:700}
+  .nomark{color:var(--bad); font-weight:700}
+  .banner{margin-top:.6rem; font-weight:600}
+  .banner.win{color:var(--good)}
+
+  /* code */
+  .tabs{display:flex; gap:.4rem; margin:1.2rem 0 0}
+  .tab{font:inherit; font-size:.9rem; font-variant:small-caps; letter-spacing:.05em;
+    border:1px solid var(--rule); border-bottom:none; background:var(--soft);
+    padding:.45rem 1rem; border-radius:6px 6px 0 0; cursor:pointer; color:#666}
+  .tab.active{background:#272521; color:#f3f0e7}
+  .codeblock{margin:0 0 1rem; background:#272521; color:#f3f0e7; border-radius:0 6px 6px 6px;
+    padding:1rem 1.1rem; overflow-x:auto}
+  .codeblock code{background:none; color:inherit; font-size:.86rem; line-height:1.5;
+    font-family:"SF Mono",Menlo,Consolas,monospace; white-space:pre}
+
+  /* quiz */
+  .quiz{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .q{font-weight:600; margin-bottom:.6rem}
+  .opt{display:block; width:100%; text-align:left; border:1px solid var(--rule);
+    background:var(--paper); padding:.6rem .8rem; margin:.4rem 0; border-radius:6px;
+    cursor:pointer; font:inherit}
+  .opt:hover{background:var(--soft)}
+  .opt.correct{border-color:var(--good); background:#eef7f0}
+  .opt.wrong{border-color:var(--bad); background:#f9eeee}
+  .fb{margin-top:.5rem; font-size:.95rem; min-height:1.2em}
+  footer{margin-top:3rem; border-top:1px solid var(--rule); padding-top:1rem;
+    font-size:.92rem; color:#5a564c}
+
+  /* dark theme: warm sepia night */
+  html[data-theme="dark"]{color-scheme:dark;
+    --ink:#e8e3d6; --paper:#201d18; --rule:#3d382f; --accent:#c97b6f;
+    --soft:#2a2620; --good:#8fbf9c; --bad:#d98a80}
+  html[data-theme="dark"] .lead{color:#cfc9bb}
+  html[data-theme="dark"] .sidenote, html[data-theme="dark"] footer,
+  html[data-theme="dark"] .phase-sub, html[data-theme="dark"] .desc,
+  html[data-theme="dark"] .sub, html[data-theme="dark"] .note{color:#a89f8d}
+  html[data-theme="dark"] [style*="#5a564c"]{color:#a89f8d!important}
+  html[data-theme="dark"] .quiz{background:#26221c}
+  html[data-theme="dark"] .opt.correct{background:#2a3a2e}
+  html[data-theme="dark"] .opt.wrong{background:#3d2a27}
+  html[data-theme="dark"] .tab{color:#9a9183}
+  /* widgets stay light: printed-figure look, keeps all verified canvas/SVG colors intact */
+  html[data-theme="dark"] .widget{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+    background:#fff; color:#1a1a1a; color-scheme:light}
+  .themetoggle{position:fixed; top:14px; right:14px; z-index:50; width:38px; height:38px;
+    border-radius:50%; border:1px solid var(--rule); background:var(--soft); color:var(--ink);
+    font-size:1rem; cursor:pointer; line-height:1; font-family:inherit}
+  .themetoggle:hover{border-color:var(--accent)}
+  @media print{.themetoggle{display:none}
+    html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+      --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a}}
+</style>
+<script>(function(){var t=localStorage.getItem('book-theme');
+if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+document.documentElement.setAttribute('data-theme',t);})()</script>
+</head>
+<body>
+<button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
+<div class="wrap">
+  <div class="kicker">AI Foundations · Lesson 2 · Phase 1 — One neuron</div>
+  <h1>The Neuron as Decision-Maker</h1>
+  <p class="lead">In <a href="0001-the-artificial-neuron.html">Lesson 1</a> you built a neuron: multiply, add, squash. Today you'll see what that little machine is actually <em>for</em>. Give it two inputs and it does something surprisingly geometric: it draws a straight line across the plane and says <strong>yes</strong> on one side, <strong>no</strong> on the other. By the end you will set its weights by hand and make it compute a real logic gate — your first working decision-maker.</p>
+
+  <h2>One breath of recap</h2>
+  <p>Everything from Lesson 1 in one line. Two inputs <code>x₁, x₂</code>, two weights, a bias, a squash:</p>
+  <div class="formula" style="text-align:center">
+    z = w₁·x₁ + w₂·x₂ + b &nbsp;&nbsp;&nbsp; a = σ(z)
+  </div>
+  <p>And the one sigmoid fact we need today: <strong>σ(0) = 0.5</strong>, and the curve only ever goes up — bigger <code>z</code>, bigger <code>a</code>. So <code>a &gt; 0.5</code> happens <em>exactly</em> when <code>z &gt; 0</code>. If we call <code>a &gt; 0.5</code> "the neuron fires" (says yes), then the whole decision boils down to one question: <em>is z positive?</em></p>
+
+  <h2>Where yes becomes no: the decision line</h2>
+  <p>Think like a programmer first: the neuron is <code>if z &gt; 0 { yes } else { no }</code>. So where, in the plane of all possible inputs <code>(x₁, x₂)</code>, does the answer flip? Precisely where <code>z</code> crosses zero. Let's write that set of "perfectly undecided" points down — first spelled out, then in school form, then the way the pros write it.</p>
+
+  <h3 style="margin:1.4rem 0 .3rem; font-size:1.05rem">① Spelled out — the boundary condition</h3>
+  <div class="formula" style="text-align:center; font-size:1.25rem">
+    w₁·x₁ + w₂·x₂ + b = 0
+  </div>
+  <p>Read it: "all the input pairs where the weighted sum plus bias lands exactly on zero." On one side of these points <code>z &gt; 0</code> (fires), on the other <code>z &lt; 0</code> (quiet). But what shape is this set?</p>
+
+  <h3 style="margin:1.6rem 0 .3rem; font-size:1.05rem">② School form — it's literally a line</h3>
+  <p>Treat it like algebra homework: solve for <code>x₂</code> (assuming <code>w₂ ≠ 0</code> — move the other terms across, divide by <code>w₂</code>):</p>
+  <div class="formula" style="text-align:center; font-size:1.25rem">
+    x₂ = −(w₁/w₂)·x₁ − b/w₂
+  </div>
+  <p>Squint at it. That is <code>y = m·x + c</code> — the straight-line equation from school. Symbol by symbol:</p>
+  <ul>
+    <li><code>−(w₁/w₂)</code> — the <strong>slope</strong>. It's built only from the weights, so <em>weights set the line's direction and steepness</em>.</li>
+    <li><code>−b/w₂</code> — the <strong>intercept</strong>, where the line crosses the x₂-axis. It's the only place the bias appears, so <em>the bias slides the line</em> without rotating it (<a href="https://en.wikipedia.org/wiki/Perceptron">Wikipedia: the bias "shifts the position (though not the orientation)" of the boundary</a>).</li>
+    <li>Edge case: if <code>w₂ = 0</code>, you can't divide — the boundary is then the vertical line <code>x₁ = −b/w₁</code>. Still a straight line.</li>
+  </ul>
+
+  <h3 style="margin:1.6rem 0 .3rem; font-size:1.05rem">③ The professional way — the decision boundary</h3>
+  <div class="formula" style="text-align:center; font-size:1.25rem">
+    <strong>w</strong> · <strong>x</strong> + b = 0
+  </div>
+  <p>Same dot-product shorthand as Lesson 1. ML people call this the <strong>decision boundary</strong>. With 2 inputs it's a line; with 3 inputs it would be a flat plane slicing 3D space; with <code>n</code> inputs, an "(n−1)-dimensional hyperplane" — scary word, same idea: a flat cut through input space, yes on one side, no on the other.</p>
+
+  <h2>Play: make it compute AND, then OR</h2>
+  <p>Time to drive. The four dots are the four possible pairs of binary inputs: (0,0), (0,1), (1,0), (1,1). A <strong>filled dot</strong> means the neuron fires there (<code>a &gt; 0.5</code>); hollow means quiet. The red line is the decision boundary, live. Your mission: pick a target gate, then tune <code>w₁, w₂, b</code> until every dot gets a <span class="okmark">✓</span>. <strong>AND</strong> fires only when both inputs are 1; <strong>OR</strong> fires when at least one is. Hint for AND: make both weights equally positive, then drag the bias down until the line isolates (1,1).</p>
+
+  <div class="widget">
+    <div style="margin-bottom:.8rem">
+      <span style="font-variant:small-caps; letter-spacing:.04em; color:#444; margin-right:.6rem">target</span>
+      <button class="seg active" data-g="AND">and</button><button class="seg" data-g="OR">or</button>
+    </div>
+    <canvas id="cv" width="480" height="400"></canvas>
+    <div class="row"><label>w₁ weight</label><input id="w1" type="range" min="-20" max="20" step="1" value="6"><span class="val" id="w1v">6</span></div>
+    <div class="row"><label>w₂ weight</label><input id="w2" type="range" min="-20" max="20" step="1" value="-4"><span class="val" id="w2v">-4</span></div>
+    <div class="row"><label>b bias</label><input id="b" type="range" min="-30" max="30" step="1" value="1"><span class="val" id="bv">1</span></div>
+    <div class="out">
+      <div class="val" style="text-align:left" id="lineEq">decision line: …</div>
+      <div class="stat" id="stat"></div>
+      <div class="banner" id="banner"></div>
+    </div>
+  </div>
+
+  <h2>The worked example: AND, by hand</h2>
+  <p>Here is one clean solution (you may have found another — infinitely many work): <code>w₁ = 10, w₂ = 10, b = −15</code>. Check all four inputs by arithmetic you can do in your head:</p>
+  <div class="formula">
+    (0,0):&nbsp; z = 10·0 + 10·0 − 15 = −15 &nbsp;→&nbsp; a ≈ 0.0000003 &nbsp;→&nbsp; quiet<br>
+    (0,1):&nbsp; z = 10·0 + 10·1 − 15 = −5 &nbsp;&nbsp;→&nbsp; a ≈ 0.0067 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→&nbsp; quiet<br>
+    (1,0):&nbsp; z = 10·1 + 10·0 − 15 = −5 &nbsp;&nbsp;→&nbsp; a ≈ 0.0067 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→&nbsp; quiet<br>
+    (1,1):&nbsp; z = 10·1 + 10·1 − 15 = +5 &nbsp;&nbsp;→&nbsp; a ≈ 0.9933 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→&nbsp; <strong>fires</strong>
+  </div>
+  <p>Every output is below 0.01 or above 0.99 — the neuron isn't just right, it's <em>confidently</em> right. And the geometry matches section ②: with these numbers the boundary is <code>x₂ = −x₁ + 1.5</code> (slope −10/10 = −1, intercept 15/10 = 1.5) — a diagonal line passing between (1,1) and the other three corners. One more trick: keep the same weights and raise the bias to <code>b = −5</code>, and the line slides down past (0,1) and (1,0) — now it computes OR. Same direction, different position: that's the bias doing its one job.</p>
+  <p>Don't take my word for the numbers — run them:</p>
+
+  <div class="tabs">
+    <button class="tab active" data-t="swift">Swift</button>
+    <button class="tab" data-t="py">Python</button>
+  </div>
+
+  <pre class="codeblock" data-lang="swift"><code>import Foundation
+
+func sigmoid(_ z: Double) -> Double {
+    1 / (1 + exp(-z))
+}
+
+// our hand-set AND gate
+let w1 = 10.0, w2 = 10.0, b = -15.0
+
+for (x1, x2) in [(0.0, 0.0), (0.0, 1.0), (1.0, 0.0), (1.0, 1.0)] {
+    let z = w1*x1 + w2*x2 + b
+    let a = sigmoid(z)
+    let fires = a > 0.5 ? "YES" : "no"
+    print("(\(Int(x1)),\(Int(x2)))  z = \(String(format: "%+6.1f", z))   a = \(String(format: "%.7f", a))   fires: \(fires)")
+}</code></pre>
+
+  <pre class="codeblock" data-lang="py" hidden><code>import math
+
+def sigmoid(z):
+    return 1 / (1 + math.exp(-z))
+
+# our hand-set AND gate
+w1, w2, b = 10.0, 10.0, -15.0
+
+for x1, x2 in [(0,0), (0,1), (1,0), (1,1)]:
+    z = w1*x1 + w2*x2 + b
+    a = sigmoid(z)
+    fired = "YES" if a > 0.5 else "no"
+    print(f"({x1},{x2})  z = {z:+6.1f}   a = {a:.7f}   fires: {fired}")</code></pre>
+
+  <p>Both print the exact same table (the Python runs in <a href="https://colab.research.google.com">Google Colab</a>, the Swift in an Xcode playground):</p>
+  <pre class="codeblock" style="border-radius:6px"><code>(0,0)  z =  -15.0   a = 0.0000003   fires: no
+(0,1)  z =   -5.0   a = 0.0066929   fires: no
+(1,0)  z =   -5.0   a = 0.0066929   fires: no
+(1,1)  z =   +5.0   a = 0.9933071   fires: YES</code></pre>
+
+  <h2>You just rebuilt the perceptron</h2>
+  <p>This idea — a neuron as a yes/no decider — is the original neural network. Frank Rosenblatt's <strong>perceptron</strong>, developed in the 1950s and 60s, output a hard <code>1</code> if <code>w·x + b &gt; 0</code> and a hard <code>0</code> otherwise; no sigmoid, just the cliff. <a href="http://neuralnetworksanddeeplearning.com/chap1.html">Nielsen</a> calls it "a device that makes decisions by weighing up evidence," and builds a NAND gate from one with weights (−2, −2) and bias 3 — exactly the game you played above. Our sigmoid neuron is, in Nielsen's words, a "smoothed out perceptron": instead of a cliff at the boundary it gives 0.0000003 — which will matter enormously when we get to learning, because smooth things can be nudged gradually.</p>
+
+  <h2>The wall: XOR</h2>
+  <p>Now the famous catch. <strong>XOR</strong> fires when the inputs <em>differ</em>: yes for (0,1) and (1,0), no for (0,0) and (1,1). Look at the widget plot and try to imagine one straight line with (0,1) and (1,0) on one side and the two other corners — which sit <em>diagonally between them</em> — on the other. There isn't one. No weights, no bias, no luck: a single neuron carves the plane with one straight cut, and XOR's yes-points and no-points interlock across the diagonal. This is exactly the limitation Minsky and Papert proved in their 1969 book <em>Perceptrons</em> (<a href="https://en.wikipedia.org/wiki/Perceptron">Wikipedia</a>). The fix is not a cleverer line — it's <em>more neurons</em>, whose lines combine into bent, flexible boundaries. That is where we go next: <a href="0003-a-layer-of-neurons.html">a layer of neurons</a>.</p>
+
+  <h2>Check yourself</h2>
+  <p>No peeking back. Pull it from memory.</p>
+
+  <div class="quiz" id="quiz1">
+    <div class="q">1. The points where a 2-input neuron flips from no to yes form:</div>
+    <button class="opt" data-c="0">a smooth curve bending around the origin</button>
+    <button class="opt" data-c="1">a straight line cutting across the plane</button>
+    <button class="opt" data-c="0">a small circle centered on the origin</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz2">
+    <div class="q">2. Changing only the bias b does what to the decision line?</div>
+    <button class="opt" data-c="0">rotates the line toward a new direction</button>
+    <button class="opt" data-c="0">bends the line into a gentle curve</button>
+    <button class="opt" data-c="1">slides the line without changing its direction</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz3">
+    <div class="q">3. Why can a single neuron never compute the XOR gate?</div>
+    <button class="opt" data-c="1">no single straight line separates XOR's answers</button>
+    <button class="opt" data-c="0">no single sigmoid curve reaches XOR's answers</button>
+    <button class="opt" data-c="0">no single bias value shifts XOR's answers</button>
+    <div class="fb"></div>
+  </div>
+
+  <h2>Read this next</h2>
+  <p>Primary source — <a href="http://neuralnetworksanddeeplearning.com/chap1.html"><strong>Nielsen, <em>Neural Networks and Deep Learning</em>, chapter 1</strong></a>, the perceptrons section. It's the cheese-festival story: a perceptron deciding whether you go to a festival by weighing up the weather, company, and transit — the friendliest serious treatment of today's idea, and the book we'll keep returning to. Read up to (and including) "Sigmoid neurons"; the rest of the chapter previews where this whole course is headed.</p>
+
+  <footer>
+    <p><strong>Your win today:</strong> you can read <code>w₁·x₁ + w₂·x₂ + b = 0</code> as a straight line splitting the plane into yes and no — and you set a neuron's weights by hand to build a working AND gate.</p>
+    <p>Previous: <a href="0001-the-artificial-neuron.html">Lesson 1 — The Artificial Neuron</a> · Next: <a href="0003-a-layer-of-neurons.html">Lesson 3 — A Layer of Neurons</a></p>
+  </footer>
+</div>
+
+<script>
+  const $=id=>document.getElementById(id);
+  const sig=z=>1/(1+Math.exp(-z));
+
+  // ---- decision-line widget ----
+  const cv=$('cv'), ctx=cv.getContext('2d');
+  const W=480, H=400, XMIN=-0.7, XMAX=1.7, YMIN=-0.5, YMAX=1.5;
+  const px=x=>(x-XMIN)/(XMAX-XMIN)*W;
+  const py=y=>H-(y-YMIN)/(YMAX-YMIN)*H;
+  const PTS=[[0,0],[0,1],[1,0],[1,1]];
+  const GATES={AND:[0,0,0,1], OR:[0,1,1,1]};
+  let target='AND';
+
+  // clip the view rectangle to the half-plane w1*x + w2*y + b >= 0
+  function fireRegion(w1,w2,b){
+    const poly=[[XMIN,YMIN],[XMAX,YMIN],[XMAX,YMAX],[XMIN,YMAX]], out=[];
+    for(let i=0;i<poly.length;i++){
+      const a=poly[i], c=poly[(i+1)%poly.length];
+      const d1=w1*a[0]+w2*a[1]+b, d2=w1*c[0]+w2*c[1]+b;
+      if(d1>=0) out.push(a);
+      if((d1>=0)!==(d2>=0)){
+        const t=d1/(d1-d2);
+        out.push([a[0]+t*(c[0]-a[0]), a[1]+t*(c[1]-a[1])]);
+      }
+    }
+    return out;
+  }
+
+  function draw(){
+    const w1=+$('w1').value, w2=+$('w2').value, b=+$('b').value;
+    $('w1v').textContent=w1; $('w2v').textContent=w2; $('bv').textContent=b;
+    ctx.clearRect(0,0,W,H);
+
+    // tint the firing side
+    const reg=fireRegion(w1,w2,b);
+    if(reg.length){
+      ctx.beginPath();
+      reg.forEach((p,i)=> i? ctx.lineTo(px(p[0]),py(p[1])) : ctx.moveTo(px(p[0]),py(p[1])));
+      ctx.closePath();
+      ctx.fillStyle='rgba(122,31,31,.07)';
+      ctx.fill();
+    }
+
+    // axes
+    ctx.strokeStyle='#e4e0d4'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(px(XMIN),py(0)); ctx.lineTo(px(XMAX),py(0));
+    ctx.moveTo(px(0),py(YMIN)); ctx.lineTo(px(0),py(YMAX)); ctx.stroke();
+
+    // decision line
+    if(w1!==0||w2!==0){
+      let p0;
+      if(Math.abs(w2)>=Math.abs(w1)) p0=[0,-b/w2]; else p0=[-b/w1,0];
+      const n=Math.hypot(w1,w2), dx=-w2/n*10, dy=w1/n*10;
+      ctx.strokeStyle='#7a1f1f'; ctx.lineWidth=2;
+      ctx.beginPath();
+      ctx.moveTo(px(p0[0]-dx),py(p0[1]-dy));
+      ctx.lineTo(px(p0[0]+dx),py(p0[1]+dy));
+      ctx.stroke();
+    }
+
+    // line equation readout
+    if(w2!==0){
+      $('lineEq').textContent='decision line:  x₂ = '+(-w1/w2).toFixed(2)+'·x₁ + '+(-b/w2).toFixed(2);
+    }else if(w1!==0){
+      $('lineEq').textContent='decision line:  vertical, x₁ = '+(-b/w1).toFixed(2);
+    }else{
+      $('lineEq').textContent='no line — z = b everywhere, the whole plane '+(b>0?'fires':'stays quiet');
+    }
+
+    // points + status
+    let stat='', allOk=true;
+    PTS.forEach((p,i)=>{
+      const a=sig(w1*p[0]+w2*p[1]+b), fired=a>0.5;
+      const want=GATES[target][i]===1, ok=fired===want;
+      if(!ok) allOk=false;
+      const X=px(p[0]), Y=py(p[1]);
+      ctx.beginPath(); ctx.arc(X,Y,10,0,2*Math.PI);
+      ctx.fillStyle=fired?'#7a1f1f':'#ffffff'; ctx.fill();
+      ctx.strokeStyle='#555'; ctx.lineWidth=1.5; ctx.stroke();
+      ctx.fillStyle=ok?'#1f6b3a':'#9a2a2a';
+      ctx.font='bold 15px Menlo,monospace';
+      ctx.fillText(ok?'✓':'✗', X+15, Y+5);
+      ctx.fillStyle='#666'; ctx.font='12px Menlo,monospace';
+      ctx.fillText('('+p[0]+','+p[1]+')', X-16, Y+(p[1]===0?28:-18));
+      stat+='('+p[0]+','+p[1]+')  a='+a.toFixed(3)+'  want '+(want?'fire ':'quiet')
+           +'  <span class="'+(ok?'okmark">✓':'nomark">✗')+'</span>\n';
+    });
+    $('stat').innerHTML=stat;
+    const bn=$('banner');
+    if(allOk){
+      bn.textContent='CORRECT! You built a working '+target+' gate by hand.';
+      bn.className='banner win';
+    }else{
+      const okCount=PTS.filter((p,i)=>(sig(w1*p[0]+w2*p[1]+b)>0.5)===(GATES[target][i]===1)).length;
+      bn.textContent='Not yet — '+okCount+' of 4 dots correct. Keep tuning.';
+      bn.className='banner';
+    }
+  }
+
+  ['w1','w2','b'].forEach(id=>$(id).addEventListener('input',draw));
+  document.querySelectorAll('.seg').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      target=btn.dataset.g;
+      document.querySelectorAll('.seg').forEach(x=>x.classList.toggle('active',x.dataset.g===target));
+      draw();
+    });
+  });
+  draw();
+
+  // ---- code tabs ----
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      const t=tab.dataset.t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.t===t));
+      document.querySelectorAll('.codeblock[data-lang]').forEach(c=>c.hidden=(c.dataset.lang!==t));
+    });
+  });
+
+  // ---- quiz ----
+  document.querySelectorAll('.quiz').forEach(q=>{
+    q.querySelectorAll('.opt').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        if(q.dataset.done) return;
+        q.dataset.done=1;
+        const correct=btn.dataset.c==='1';
+        btn.classList.add(correct?'correct':'wrong');
+        if(!correct){
+          q.querySelector('.opt[data-c="1"]').classList.add('correct');
+        }
+        q.querySelector('.fb').textContent = correct ? 'Correct — locked in.' : 'Not quite — the green one is right.';
+      });
+    });
+  });
+</script>
+<script>
+(function(){
+  var b=document.getElementById('themeToggle');
+  function sync(){b.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀':'☾';}
+  b.addEventListener('click',function(){
+    var next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{localStorage.setItem('book-theme',next);}catch(e){}
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

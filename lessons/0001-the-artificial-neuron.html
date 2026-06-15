@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 1 — The Artificial Neuron</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.55; margin:0; padding:3rem 1.2rem 5rem;
+  }
+  .wrap{max-width:680px; margin:0 auto}
+  .kicker{font-variant:small-caps; letter-spacing:.08em; color:var(--accent);
+    font-size:.95rem; margin-bottom:.2rem}
+  h1{font-size:2.1rem; line-height:1.15; margin:.1rem 0 1.2rem; font-weight:600}
+  h2{font-size:1.3rem; margin:2.4rem 0 .6rem; font-weight:600}
+  p{margin:.7rem 0}
+  .lead{font-size:1.12rem; color:#33312c}
+  .formula{
+    background:var(--soft); border-left:3px solid var(--accent);
+    padding:.9rem 1.1rem; margin:1.2rem 0; font-size:1.15rem;
+    font-family:"Latin Modern Math","Cambria Math",Georgia,serif; overflow-x:auto;
+  }
+  code{font-family:"SF Mono",Menlo,Consolas,monospace; font-size:.92em;
+    background:var(--soft); padding:.1em .35em; border-radius:3px}
+  a{color:var(--accent)}
+  .sidenote{font-size:.9rem; color:#5a564c; border-top:1px solid var(--rule);
+    border-bottom:1px solid var(--rule); padding:.7rem 0; margin:1.4rem 0}
+
+  /* interactive widget */
+  .widget{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .row{display:grid; grid-template-columns:90px 1fr 70px; gap:.8rem; align-items:center;
+    margin:.55rem 0}
+  .row label{font-variant:small-caps; letter-spacing:.04em; color:#444}
+  input[type=range]{width:100%}
+  .val{font-family:"SF Mono",Menlo,monospace; text-align:right}
+  .out{margin-top:1rem; padding-top:1rem; border-top:1px dashed var(--rule)}
+  .bar{height:22px; background:var(--soft); border-radius:11px; overflow:hidden; margin-top:.4rem}
+  .fill{height:100%; width:0; background:var(--accent); transition:width .12s}
+  .big{font-size:1.5rem; font-family:"SF Mono",Menlo,monospace}
+
+  /* code */
+  .tabs{display:flex; gap:.4rem; margin:1.2rem 0 0}
+  .tab{font:inherit; font-size:.9rem; font-variant:small-caps; letter-spacing:.05em;
+    border:1px solid var(--rule); border-bottom:none; background:var(--soft);
+    padding:.45rem 1rem; border-radius:6px 6px 0 0; cursor:pointer; color:#666}
+  .tab.active{background:#272521; color:#f3f0e7}
+  .codeblock{margin:0 0 1rem; background:#272521; color:#f3f0e7; border-radius:0 6px 6px 6px;
+    padding:1rem 1.1rem; overflow-x:auto}
+  .codeblock code{background:none; color:inherit; font-size:.86rem; line-height:1.5;
+    font-family:"SF Mono",Menlo,Consolas,monospace; white-space:pre}
+
+  /* quiz */
+  .quiz{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .q{font-weight:600; margin-bottom:.6rem}
+  .opt{display:block; width:100%; text-align:left; border:1px solid var(--rule);
+    background:var(--paper); padding:.6rem .8rem; margin:.4rem 0; border-radius:6px;
+    cursor:pointer; font:inherit}
+  .opt:hover{background:var(--soft)}
+  .opt.correct{border-color:var(--good); background:#eef7f0}
+  .opt.wrong{border-color:var(--bad); background:#f9eeee}
+  .fb{margin-top:.5rem; font-size:.95rem; min-height:1.2em}
+  footer{margin-top:3rem; border-top:1px solid var(--rule); padding-top:1rem;
+    font-size:.92rem; color:#5a564c}
+
+  /* dark theme: warm sepia night */
+  html[data-theme="dark"]{color-scheme:dark;
+    --ink:#e8e3d6; --paper:#201d18; --rule:#3d382f; --accent:#c97b6f;
+    --soft:#2a2620; --good:#8fbf9c; --bad:#d98a80}
+  html[data-theme="dark"] .lead{color:#cfc9bb}
+  html[data-theme="dark"] .sidenote, html[data-theme="dark"] footer,
+  html[data-theme="dark"] .phase-sub, html[data-theme="dark"] .desc,
+  html[data-theme="dark"] .sub, html[data-theme="dark"] .note{color:#a89f8d}
+  html[data-theme="dark"] [style*="#5a564c"]{color:#a89f8d!important}
+  html[data-theme="dark"] .quiz{background:#26221c}
+  html[data-theme="dark"] .opt.correct{background:#2a3a2e}
+  html[data-theme="dark"] .opt.wrong{background:#3d2a27}
+  html[data-theme="dark"] .tab{color:#9a9183}
+  /* widgets stay light: printed-figure look, keeps all verified canvas/SVG colors intact */
+  html[data-theme="dark"] .widget{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+    background:#fff; color:#1a1a1a; color-scheme:light}
+  .themetoggle{position:fixed; top:14px; right:14px; z-index:50; width:38px; height:38px;
+    border-radius:50%; border:1px solid var(--rule); background:var(--soft); color:var(--ink);
+    font-size:1rem; cursor:pointer; line-height:1; font-family:inherit}
+  .themetoggle:hover{border-color:var(--accent)}
+  @media print{.themetoggle{display:none}
+    html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+      --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a}}
+</style>
+<script>(function(){var t=localStorage.getItem('book-theme');
+if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+document.documentElement.setAttribute('data-theme',t);})()</script>
+</head>
+<body>
+<button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
+<div class="wrap">
+  <div class="kicker">AI Foundations · Lesson 1</div>
+  <h1>The Artificial Neuron</h1>
+  <p class="lead">Everything in modern AI — every chatbot, every image model — is built from one tiny repeated unit. Before layers, before training, before any of the scary words, there is just this: a neuron that takes some numbers in and pushes one number out. Learn this one thing and you own the foundation.</p>
+
+  <h2>A neuron is a thing that holds a number</h2>
+  <p>An artificial neuron holds a single number called its <strong>activation</strong> — think of it as how "lit up" the neuron is. Where does that number come from? From the neurons feeding into it. Each incoming number <code>x</code> arrives over a connection that has a <strong>weight</strong> <code>w</code> — the strength of that connection. <span class="sidenote">This is a deliberate cartoon of a biological neuron. The brain inspired the name; the math is its own thing. — <a href="https://www.3blue1brown.com/lessons/neural-networks">3Blue1Brown</a></span></p>
+
+  <h2>Feel it: tune a neuron by hand</h2>
+  <p>Before any formulas — drive the thing. Two inputs, two weights, one bias. The neuron multiplies each input by its weight, adds everything (bias included) into one number <code>z</code>, then squashes <code>z</code> into the range 0 to 1; that squashed value is the <strong>activation</strong> <code>a = σ(z)</code> — σ is just the name of the squashing step, and we'll unpack the math after you've played. Move the sliders and watch both numbers react. Notice: big positive <code>z</code> → activation near 1; big negative → near 0; <code>z</code> = 0 → exactly 0.5.</p>
+
+  <div class="widget">
+    <div class="row"><label>x₁ input</label><input id="x1" type="range" min="-2" max="2" step="0.1" value="1"><span class="val" id="x1v">1.0</span></div>
+    <div class="row"><label>w₁ weight</label><input id="w1" type="range" min="-3" max="3" step="0.1" value="1.5"><span class="val" id="w1v">1.5</span></div>
+    <div class="row"><label>x₂ input</label><input id="x2" type="range" min="-2" max="2" step="0.1" value="-1"><span class="val" id="x2v">-1.0</span></div>
+    <div class="row"><label>w₂ weight</label><input id="w2" type="range" min="-3" max="3" step="0.1" value="0.5"><span class="val" id="w2v">0.5</span></div>
+    <div class="row"><label>b bias</label><input id="b" type="range" min="-3" max="3" step="0.1" value="0"><span class="val" id="bv">0.0</span></div>
+    <div class="out">
+      <div>z = w₁·x₁ + w₂·x₂ + b = <span class="val" id="z">1.00</span></div>
+      <div style="margin-top:.5rem">activation a = σ(z) = <span class="big" id="a">0.731</span></div>
+      <div class="bar"><div class="fill" id="fill" style="width:73.1%"></div></div>
+    </div>
+  </div>
+
+  <h2>Write it in code</h2>
+  <p>What you just did with the sliders is a handful of lines: multiply each input by its weight, sum, add bias, squash. Here it is in Swift and Python — read whichever feels like home, then run one for real. (Python looking foreign? The <a href="../reference/python-for-swift-developers.html">Python-for-Swift-developers reference</a> decodes every construct this book uses.) Paste the Python version into a fresh <a href="https://colab.research.google.com">Google Colab</a> notebook (zero install) and run it — you should see <code>0.7310585786300049</code>. The Swift version runs as-is in an Xcode playground.</p>
+
+  <div class="tabs">
+    <button class="tab active" data-t="swift">Swift</button>
+    <button class="tab" data-t="py">Python</button>
+  </div>
+
+  <pre class="codeblock" data-lang="swift"><code>import Foundation
+
+func sigmoid(_ z: Double) -> Double {
+    1 / (1 + exp(-z))
+}
+
+func neuron(inputs: [Double], weights: [Double], bias: Double) -> Double {
+    // weighted sum: w1*x1 + w2*x2 + ...
+    var z = bias
+    for i in 0..&lt;inputs.count {
+        z += weights[i] * inputs[i]
+    }
+    return sigmoid(z)
+}
+
+let a = neuron(inputs: [1.0, -1.0], weights: [1.5, 0.5], bias: 0.0)
+print(a)   // 0.73105...  (z = 1.5 - 0.5 + 0 = 1.0)</code></pre>
+
+  <pre class="codeblock" data-lang="py" hidden><code>import math
+
+def sigmoid(z):
+    return 1 / (1 + math.exp(-z))
+
+def neuron(inputs, weights, bias):
+    # weighted sum: w1*x1 + w2*x2 + ...
+    z = bias
+    for x, w in zip(inputs, weights):
+        z += w * x
+    return sigmoid(z)
+
+a = neuron([1.0, -1.0], [1.5, 0.5], 0.0)
+print(a)   # 0.73105...  (z = 1.5 - 0.5 + 0 = 1.0)</code></pre>
+
+  <p class="sidenote">Same idea, two languages. The bias is just the starting value of <code>z</code>. And the printed <code>0.73105…</code> is the same value the slider widget above shows for those same numbers, rounded to three decimals: <code>0.731</code> (z = 1.5·1 + 0.5·(−1) + 0 = 1.0, and σ(1.0) ≈ 0.7311, <a href="https://www.wolframalpha.com/input?i=sigmoid%281.5%2A1+%2B+0.5%2A%28-1%29+%2B+0%29">verified in Wolfram&nbsp;Alpha</a>). The sliders, the code, and — next — the formula are all the same neuron.</p>
+
+  <h2>The real formula — three ways to write it</h2>
+  <p>You've now tuned a neuron by hand and run it in code. Time to name what you were doing. The neuron does three steps:</p>
+  <div class="formula">
+    1. weighted sum:&nbsp; w₁·x₁ + w₂·x₂ + … + wₙ·xₙ<br>
+    2. add bias:&nbsp; z = (weighted sum) + b<br>
+    3. squash:&nbsp; a = σ(z)
+  </div>
+  <p>The <strong>bias</strong> <code>b</code> shifts the whole result up or down — it sets how eager the neuron is to fire at all. The <strong>activation function</strong> <code>σ</code> (here the <em>sigmoid</em>) squashes any number into a tidy range between 0 and 1, so the output is always a clean "how active." That's the entire neuron. Two operations you already know — multiply-and-add — followed by one squash.</p>
+  <p>Here is the part nobody tells beginners: the formula isn't one fixed thing. It's the <em>same neuron</em> written at three levels of shorthand. Start with the easy one. The other two just pack it tighter.</p>
+
+  <h3 style="margin:1.4rem 0 .3rem; font-size:1.05rem">① The easy way — spelled out</h3>
+  <p>For a neuron with 2 inputs, write every term by hand. Nothing hidden:</p>
+  <div class="formula" style="text-align:center; font-size:1.25rem">
+    z = w₁·x₁ + w₂·x₂ + b<br>
+    a = σ(z)
+  </div>
+  <p>Read it left to right: take input one, multiply by its weight; take input two, multiply by its weight; add them; add the bias. That total is <code>z</code>. Then squash <code>z</code> with σ to get the activation <code>a</code>. <strong>If you only remember this one, you understand the neuron.</strong></p>
+
+  <h3 style="margin:1.6rem 0 .3rem; font-size:1.05rem">② The compact way — with Σ</h3>
+  <p>What if a neuron has 784 inputs (like a 28×28 image)? You can't write <code>w₁·x₁ + … + w₇₈₄·x₇₈₄</code> by hand. So mathematicians use Σ ("sigma", capital S for "sum") as shorthand for "loop and add":</p>
+  <div class="formula" style="text-align:center; font-size:1.25rem">
+    z = ( Σ<sub style="font-size:.7em">i=1</sub><sup style="font-size:.7em">n</sup>&nbsp;wᵢ·xᵢ ) + b
+  </div>
+  <p>This is <strong>identical</strong> to ① — it's just a <code>for</code> loop on paper. Read the symbols:</p>
+  <ul>
+    <li><code>i</code> — the counter (like <code>i</code> in a Swift <code>for</code> loop).</li>
+    <li><code>i=1</code> below Σ, <code>n</code> above it — "start at input 1, go up to input n (the last one)."</li>
+    <li><code>wᵢ·xᵢ</code> — the thing you do each step: weight <em>i</em> times input <em>i</em>.</li>
+    <li>Σ — "add all those up." Then <code>+ b</code> outside, once, at the end.</li>
+  </ul>
+  <p>So <code>Σ wᵢxᵢ</code> reads literally as: <code>var sum = 0.0; for i in 0..&lt;n { sum += w[i]*x[i] }</code>. That's the whole mystery. (One small shift to notice: math counts inputs from 1, Swift arrays count from 0 — which is exactly why the real code above loops over <code>0..&lt;inputs.count</code>.)</p>
+
+  <h3 style="margin:1.6rem 0 .3rem; font-size:1.05rem">③ The popular way — vectors (what pros use)</h3>
+  <p>In real ML papers and code you'll almost always see this shortest form:</p>
+  <div class="formula" style="text-align:center; font-size:1.3rem">
+    a = σ( <strong>w</strong> · <strong>x</strong> + b )
+  </div>
+  <p>Here <strong>w</strong> and <strong>x</strong> are bold because they're <em>vectors</em> — just lists of numbers, exactly like a Swift <code>[Double]</code>. The dot <code>·</code> between them is the <strong>dot product</strong>, which is a one-word name for "multiply the lists element-by-element and add it all up" — i.e. the exact same Σ from ②. It's popular because (a) it's short, and (b) computers run it blazingly fast on whole lists at once. Same neuron, fewer symbols.</p>
+
+  <div class="sidenote">
+    <strong>The one truly new piece: the sigmoid.</strong> All three forms end in <code>σ(z)</code>, defined as<br>
+    <span style="font-family:Georgia,serif">σ(z) = 1 / (1 + e<sup>−z</sup>)</span><br>
+    <code>e</code> is just a fixed number (≈ 2.718, like π). You don't compute this by hand — you call <code>exp()</code>. All it does is bend any input into a smooth S-curve between 0 and 1: very negative → near 0, zero → exactly 0.5, very positive → near 1. That's why activations are always a clean "how active."
+  </div>
+
+  <p><strong>Bottom line:</strong> ①, ②, ③ are the same neuron. Keep ① in your head for understanding; recognise ② and ③ when you read other people's math and code.</p>
+
+  <h2>Check yourself</h2>
+  <p>No peeking back. Pull it from memory.</p>
+
+  <div class="quiz" id="quiz1">
+    <div class="q">1. What does the weight on a connection represent?</div>
+    <button class="opt" data-c="1">the strength of that input connection</button>
+    <button class="opt" data-c="0">the speed of that input connection</button>
+    <button class="opt" data-c="0">the memory of that input connection</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz2">
+    <div class="q">2. What is the job of the activation function σ?</div>
+    <button class="opt" data-c="0">to add every weighted input value</button>
+    <button class="opt" data-c="1">to squash results into a range</button>
+    <button class="opt" data-c="0">to choose the largest input number</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz3">
+    <div class="q">3. If z equals exactly zero, the sigmoid activation is:</div>
+    <button class="opt" data-c="0">a value of exactly 0.000 here</button>
+    <button class="opt" data-c="0">a value of exactly 1.000 here</button>
+    <button class="opt" data-c="1">a value of exactly 0.500 here</button>
+    <div class="fb"></div>
+  </div>
+
+  <h2>Watch this next</h2>
+  <p>Primary source — the single best 20 minutes you can spend on this: <a href="https://www.3blue1brown.com/lessons/neural-networks"><strong>"But what is a Neural Network?" by 3Blue1Brown</strong></a>. It animates exactly what you just tuned, then shows how thousands of these neurons stack into layers. That stacking is <a href="0002-the-neuron-as-decision-maker.html">Lesson 2</a> (coming next).</p>
+
+  <footer>
+    <p><strong>Your win today:</strong> you can now state, with the math, what a single neuron computes — weighted sum, plus bias, through an activation function.</p>
+    <p>First lesson — no previous one. Next: <a href="0002-the-neuron-as-decision-maker.html">Lesson 2 — The Neuron as Decision-Maker</a></p>
+  </footer>
+</div>
+
+<script>
+  const $=id=>document.getElementById(id);
+  const sig=z=>1/(1+Math.exp(-z));
+  function update(){
+    const x1=+$('x1').value, w1=+$('w1').value, x2=+$('x2').value, w2=+$('w2').value, b=+$('b').value;
+    $('x1v').textContent=x1.toFixed(1); $('w1v').textContent=w1.toFixed(1);
+    $('x2v').textContent=x2.toFixed(1); $('w2v').textContent=w2.toFixed(1);
+    $('bv').textContent=b.toFixed(1);
+    const z=w1*x1+w2*x2+b, a=sig(z);
+    $('z').textContent=z.toFixed(2); $('a').textContent=a.toFixed(3);
+    $('fill').style.width=(a*100)+'%';
+  }
+  ['x1','w1','x2','w2','b'].forEach(id=>$(id).addEventListener('input',update));
+  update();
+
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      const t=tab.dataset.t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.t===t));
+      document.querySelectorAll('.codeblock').forEach(c=>c.hidden=(c.dataset.lang!==t));
+    });
+  });
+
+  document.querySelectorAll('.quiz').forEach(q=>{
+    q.querySelectorAll('.opt').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        if(q.dataset.done) return;
+        q.dataset.done=1;
+        const correct=btn.dataset.c==='1';
+        btn.classList.add(correct?'correct':'wrong');
+        if(!correct){
+          q.querySelector('.opt[data-c="1"]').classList.add('correct');
+        }
+        q.querySelector('.fb').textContent = correct ? 'Correct — locked in.' : 'Not quite — the green one is right.';
+      });
+    });
+  });
+</script>
+<script>
+(function(){
+  var b=document.getElementById('themeToggle');
+  function sync(){b.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀':'☾';}
+  b.addEventListener('click',function(){
+    var next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{localStorage.setItem('book-theme',next);}catch(e){}
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

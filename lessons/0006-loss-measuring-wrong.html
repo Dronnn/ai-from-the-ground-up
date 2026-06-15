@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 6 — Loss: Measuring How Wrong We Are</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.55; margin:0; padding:3rem 1.2rem 5rem;
+  }
+  .wrap{max-width:680px; margin:0 auto}
+  .kicker{font-variant:small-caps; letter-spacing:.08em; color:var(--accent);
+    font-size:.95rem; margin-bottom:.2rem}
+  h1{font-size:2.1rem; line-height:1.15; margin:.1rem 0 1.2rem; font-weight:600}
+  h2{font-size:1.3rem; margin:2.4rem 0 .6rem; font-weight:600}
+  p{margin:.7rem 0}
+  .lead{font-size:1.12rem; color:#33312c}
+  .formula{
+    background:var(--soft); border-left:3px solid var(--accent);
+    padding:.9rem 1.1rem; margin:1.2rem 0; font-size:1.15rem;
+    font-family:"Latin Modern Math","Cambria Math",Georgia,serif; overflow-x:auto;
+  }
+  code{font-family:"SF Mono",Menlo,Consolas,monospace; font-size:.92em;
+    background:var(--soft); padding:.1em .35em; border-radius:3px}
+  a{color:var(--accent)}
+  .sidenote{font-size:.9rem; color:#5a564c; border-top:1px solid var(--rule);
+    border-bottom:1px solid var(--rule); padding:.7rem 0; margin:1.4rem 0}
+
+  /* interactive widget */
+  .widget{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .row{display:grid; grid-template-columns:90px 1fr 70px; gap:.8rem; align-items:center;
+    margin:.55rem 0}
+  .row label{font-variant:small-caps; letter-spacing:.04em; color:#444}
+  input[type=range]{width:100%}
+  .val{font-family:"SF Mono",Menlo,monospace; text-align:right}
+  .out{margin-top:1rem; padding-top:1rem; border-top:1px dashed var(--rule)}
+  .bar{height:22px; background:var(--soft); border-radius:11px; overflow:hidden; margin-top:.4rem}
+  .bar.sm{height:12px; border-radius:6px; margin-top:0}
+  .fill{height:100%; width:0; background:var(--accent); transition:width .12s}
+  .big{font-size:1.5rem; font-family:"SF Mono",Menlo,monospace}
+  .msg{margin-top:.6rem; font-size:.92rem; color:#5a564c; min-height:2.4em}
+
+  /* worked table */
+  .tbl{border-collapse:collapse; width:100%; margin:1.2rem 0; font-size:.95rem}
+  .tbl th,.tbl td{border:1px solid var(--rule); padding:.45rem .6rem; text-align:center}
+  .tbl th{background:var(--soft); font-variant:small-caps; letter-spacing:.04em; font-weight:600}
+  .tbl td.m{font-family:"SF Mono",Menlo,Consolas,monospace; font-size:.88rem}
+
+  /* code */
+  .tabs{display:flex; gap:.4rem; margin:1.2rem 0 0}
+  .tab{font:inherit; font-size:.9rem; font-variant:small-caps; letter-spacing:.05em;
+    border:1px solid var(--rule); border-bottom:none; background:var(--soft);
+    padding:.45rem 1rem; border-radius:6px 6px 0 0; cursor:pointer; color:#666}
+  .tab.active{background:#272521; color:#f3f0e7}
+  .codeblock{margin:0 0 1rem; background:#272521; color:#f3f0e7; border-radius:0 6px 6px 6px;
+    padding:1rem 1.1rem; overflow-x:auto}
+  .codeblock code{background:none; color:inherit; font-size:.86rem; line-height:1.5;
+    font-family:"SF Mono",Menlo,Consolas,monospace; white-space:pre}
+
+  /* quiz */
+  .quiz{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .q{font-weight:600; margin-bottom:.6rem}
+  .opt{display:block; width:100%; text-align:left; border:1px solid var(--rule);
+    background:var(--paper); padding:.6rem .8rem; margin:.4rem 0; border-radius:6px;
+    cursor:pointer; font:inherit}
+  .opt:hover{background:var(--soft)}
+  .opt.correct{border-color:var(--good); background:#eef7f0}
+  .opt.wrong{border-color:var(--bad); background:#f9eeee}
+  .fb{margin-top:.5rem; font-size:.95rem; min-height:1.2em}
+  footer{margin-top:3rem; border-top:1px solid var(--rule); padding-top:1rem;
+    font-size:.92rem; color:#5a564c}
+
+  /* dark theme: warm sepia night */
+  html[data-theme="dark"]{color-scheme:dark;
+    --ink:#e8e3d6; --paper:#201d18; --rule:#3d382f; --accent:#c97b6f;
+    --soft:#2a2620; --good:#8fbf9c; --bad:#d98a80}
+  html[data-theme="dark"] .lead{color:#cfc9bb}
+  html[data-theme="dark"] .sidenote, html[data-theme="dark"] footer,
+  html[data-theme="dark"] .phase-sub, html[data-theme="dark"] .desc,
+  html[data-theme="dark"] .sub, html[data-theme="dark"] .note{color:#a89f8d}
+  html[data-theme="dark"] [style*="#5a564c"]{color:#a89f8d!important}
+  html[data-theme="dark"] .quiz{background:#26221c}
+  html[data-theme="dark"] .opt.correct{background:#2a3a2e}
+  html[data-theme="dark"] .opt.wrong{background:#3d2a27}
+  html[data-theme="dark"] .tab{color:#9a9183}
+  /* widgets stay light: printed-figure look, keeps all verified canvas/SVG colors intact */
+  html[data-theme="dark"] .widget{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+    background:#fff; color:#1a1a1a; color-scheme:light}
+  .themetoggle{position:fixed; top:14px; right:14px; z-index:50; width:38px; height:38px;
+    border-radius:50%; border:1px solid var(--rule); background:var(--soft); color:var(--ink);
+    font-size:1rem; cursor:pointer; line-height:1; font-family:inherit}
+  .themetoggle:hover{border-color:var(--accent)}
+  @media print{.themetoggle{display:none}
+    html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+      --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a}}
+</style>
+<script>(function(){var t=localStorage.getItem('book-theme');
+if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+document.documentElement.setAttribute('data-theme',t);})()</script>
+</head>
+<body>
+<button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
+<div class="wrap">
+  <div class="kicker">AI Foundations · Lesson 6 · Phase 3 — How a network learns</div>
+  <h1>Loss — Measuring How Wrong We Are</h1>
+  <p class="lead">Lessons 1–5 built a machine that turns inputs into a prediction: numbers in, forward pass through the layers, number out. But that machine starts life with random weights, so its predictions start out as garbage. Phase 3 is about fixing that — teaching the network. And all of teaching rests on one almost embarrassingly simple idea: before anything can get better, it needs a <strong>score</strong> that says how wrong it currently is. Today you compute that score by hand.</p>
+
+  <h2>Learning needs a score</h2>
+  <p>Three new words, all of them friendly. The number your network outputs for an example is its <strong>prediction</strong>, written <strong>ŷ</strong> — read it aloud as <em>"y-hat"</em>; the hat is math's way of saying "an estimate of y". The true answer stored in your training data is the <strong>target</strong> <strong>y</strong> (also called a <em>label</em>). And the single number that summarizes how far all the predictions are from all the targets is the <strong>loss</strong> — in some books, like <a href="http://neuralnetworksanddeeplearning.com/chap1.html">Nielsen's</a>, it's called the <em>cost</em>; same thing.</p>
+  <p>Why one smooth number instead of just counting how many answers the network got right? Nielsen's argument: a tiny nudge to one weight usually doesn't flip any answer from wrong to right, so the <em>count</em> doesn't move — you get no signal about whether the nudge helped. A smooth loss moves a little with <em>every</em> nudge, so it always tells you whether you just made things better or worse. That property is the entire reason learning is possible, and lesson 7 cashes it in.</p>
+
+  <h2>Feel it: three photos, three misses</h2>
+  <p>A tiny cat detector looked at three photos. Its output neuron ends in a sigmoid (lesson 1), so each prediction is between 0 and 1; the target is 1 for a cat, 0 for not-a-cat. Photos 1 and 3 are cats, photo 2 isn't. The sliders are the network's predictions — the bars show the <strong>squared error</strong> of each photo and the average of the three, the <strong>MSE</strong>. Try this: fix photo 3 (drag it toward 1.00) and watch the average collapse. Then drag it to 0.00 and watch one terrible miss take over the whole score. Then match all three targets exactly.</p>
+
+  <div class="widget">
+    <div class="row"><label>ŷ₁ · y=1</label><input id="p1" type="range" min="0" max="1" step="0.01" value="0.9"><span class="val" id="p1v">0.90</span></div>
+    <div class="row"><label>ŷ₂ · y=0</label><input id="p2" type="range" min="0" max="1" step="0.01" value="0.2"><span class="val" id="p2v">0.20</span></div>
+    <div class="row"><label>ŷ₃ · y=1</label><input id="p3" type="range" min="0" max="1" step="0.01" value="0.4"><span class="val" id="p3v">0.40</span></div>
+    <div class="out">
+      <div class="row"><label>(ŷ₁−y₁)²</label><div class="bar sm"><div class="fill" id="fb1" style="width:1%"></div></div><span class="val" id="sq1">0.01</span></div>
+      <div class="row"><label>(ŷ₂−y₂)²</label><div class="bar sm"><div class="fill" id="fb2" style="width:4%"></div></div><span class="val" id="sq2">0.04</span></div>
+      <div class="row"><label>(ŷ₃−y₃)²</label><div class="bar sm"><div class="fill" id="fb3" style="width:36%"></div></div><span class="val" id="sq3">0.36</span></div>
+      <div style="margin-top:.7rem">MSE = average of the three = <span class="big" id="mse">0.137</span></div>
+      <div class="bar"><div class="fill" id="fmse" style="width:13.7%"></div></div>
+      <div class="msg" id="msg"></div>
+    </div>
+  </div>
+
+  <h2>Now by hand — the worked table</h2>
+  <p>The recipe you were just driving has three steps. <strong>Step 1:</strong> for each example, take the signed miss, <code>ŷ − y</code>. <strong>Step 2:</strong> square it. <strong>Step 3:</strong> average the squares. Here is the widget's starting position, worked out completely:</p>
+
+  <table class="tbl">
+    <tr><th>photo</th><th>target y</th><th>prediction ŷ</th><th>miss ŷ−y</th><th>squared (ŷ−y)²</th></tr>
+    <tr><td>1 (cat)</td><td class="m">1.0</td><td class="m">0.9</td><td class="m">−0.1</td><td class="m">0.01</td></tr>
+    <tr><td>2 (not cat)</td><td class="m">0.0</td><td class="m">0.2</td><td class="m">+0.2</td><td class="m">0.04</td></tr>
+    <tr><td>3 (cat)</td><td class="m">1.0</td><td class="m">0.4</td><td class="m">−0.6</td><td class="m">0.36</td></tr>
+  </table>
+
+  <div class="formula" style="text-align:center">
+    MSE = (0.01 + 0.04 + 0.36) ⁄ 3 = 0.41 ⁄ 3 ≈ <strong>0.1367</strong>
+  </div>
+
+  <p>Why square the misses instead of just averaging them? Two reasons, and both are visible in the table (they're also the standard justification on <a href="https://en.wikipedia.org/wiki/Mean_squared_error">Wikipedia's MSE page</a>):</p>
+  <p><strong>1. Squaring kills the sign.</strong> The misses −0.1 and +0.2 point in opposite directions, but their squares 0.01 and 0.04 are both positive — wrongness can't cancel out. If we averaged raw misses instead, a model that overshoots one example by +0.5 and undershoots another by −0.5 would score a raw average of exactly 0.0: a perfect grade for a terrible model. (Even our table's raw misses average to a misleadingly small −0.1667.)</p>
+  <p><strong>2. Squaring punishes big misses harder.</strong> Photo 3's miss (0.6) is only 3× bigger than photo 2's (0.2), but its penalty is 9× bigger: 0.36 versus 0.04. Doubling a miss quadruples its penalty — so one confident wrong answer hurts the score far more than several small wobbles. That's the "one bar dominates" effect you saw in the widget.</p>
+  <p>One more property worth saying out loud: since every term is a square, the loss is never negative. Zero is the floor, and it's reached exactly when every prediction equals its target.</p>
+
+  <h2>Write it in code</h2>
+  <p>The whole thing is one loop: subtract, square, accumulate, divide. Run the Python version in <a href="https://colab.research.google.com">Google Colab</a> — you should see <code>0.13666666666666666</code>, which is the table's 0.1367 and the widget's 0.137 before rounding. The Swift version prints the identical value in an Xcode playground.</p>
+
+  <div class="tabs">
+    <button class="tab active" data-t="swift">Swift</button>
+    <button class="tab" data-t="py">Python</button>
+  </div>
+
+  <pre class="codeblock" data-lang="swift"><code>let predictions = [0.9, 0.2, 0.4]   // what the network said
+let targets     = [1.0, 0.0, 1.0]   // what the truth was
+
+var total = 0.0
+for (yHat, y) in zip(predictions, targets) {
+    let error = yHat - y            // signed miss
+    total += error * error          // square it
+}
+let mse = total / Double(predictions.count)  // average it
+
+print(mse)   // 0.13666666666666666</code></pre>
+
+  <pre class="codeblock" data-lang="py" hidden><code>predictions = [0.9, 0.2, 0.4]   # what the network said
+targets     = [1.0, 0.0, 1.0]   # what the truth was
+
+total = 0.0
+for y_hat, y in zip(predictions, targets):
+    error = y_hat - y           # signed miss
+    total += error * error      # square it
+mse = total / len(predictions)  # average it
+
+print(mse)   # 0.13666666666666666</code></pre>
+
+  <p class="sidenote">Slider widget, paper table, code — all three computed the same number. If you can write this loop (you just read it twice), you already know the formula; we're only going to name it.</p>
+
+  <h2>The real formula — three ways to write it</h2>
+  <p>What you just computed is the <strong>mean squared error</strong> — <em>mean</em> of the <em>squared</em> <em>errors</em>, the name is literally the recipe read backwards. Same drill as lesson 1: one formula, three levels of shorthand.</p>
+
+  <h3 style="margin:1.4rem 0 .3rem; font-size:1.05rem">① The easy way — spelled out</h3>
+  <p>For our three photos, every term written by hand:</p>
+  <div class="formula" style="text-align:center; font-size:1.2rem">
+    MSE = ( (ŷ₁−y₁)² + (ŷ₂−y₂)² + (ŷ₃−y₃)² ) ⁄ 3
+  </div>
+  <p>Read it left to right: miss on photo 1, squared; miss on photo 2, squared; miss on photo 3, squared; add them; divide by how many there are. That's the table.</p>
+
+  <h3 style="margin:1.6rem 0 .3rem; font-size:1.05rem">② The compact way — with Σ</h3>
+  <p>For n examples instead of 3, use the Σ "loop and add" shorthand you met in lesson 1 (<a href="https://en.wikipedia.org/wiki/Mean_squared_error">Wikipedia's definition</a>, with prediction and target swapped — squaring makes the order irrelevant, since (a−b)² = (b−a)²):</p>
+  <div class="formula" style="text-align:center; font-size:1.25rem">
+    MSE = (1 ⁄ n) · Σ<sub style="font-size:.7em">i=1</sub><sup style="font-size:.7em">n</sup> (ŷᵢ − yᵢ)²
+  </div>
+  <ul>
+    <li><code>n</code> — how many examples you're grading (we had 3).</li>
+    <li><code>i</code> — the loop counter: example 1, example 2, … example n.</li>
+    <li><code>ŷᵢ</code> — "y-hat-i", the prediction for example i.</li>
+    <li><code>yᵢ</code> — the target for example i, so <code>(ŷᵢ − yᵢ)</code> is the signed miss.</li>
+    <li>the square — kills the sign, magnifies big misses (the two reasons above).</li>
+    <li><code>Σ … (1/n)</code> — add them all up, divide by the count: an average.</li>
+  </ul>
+  <p>In code terms: <code>total += (yHat[i] - y[i])**2</code> inside the loop, <code>/ n</code> after it. You already ran exactly this.</p>
+
+  <h3 style="margin:1.6rem 0 .3rem; font-size:1.05rem">③ The professional way — how Nielsen writes it</h3>
+  <p>In <a href="http://neuralnetworksanddeeplearning.com/chap1.html">Nielsen's book</a> (our primary source) the same idea appears dressed for work:</p>
+  <div class="formula" style="text-align:center; font-size:1.25rem">
+    C(w, b) = (1 ⁄ 2n) · Σ<sub style="font-size:.7em">x</sub> ‖ y(x) − a ‖²
+  </div>
+  <p>Decode it piece by piece: <code>C</code> is the cost — his word for loss. <code>a</code> is the network's output for input <code>x</code> — his ŷ. The double bars <code>‖…‖</code> mean "length of a vector": when a network has several output neurons (say 10, one per digit), the miss is a whole list of numbers, and you square its length instead of a single difference. And <code>1/2n</code> instead of <code>1/n</code>? The extra ÷2 is <strong>cosmetic</strong>: halving every score doesn't change which weights produce the <em>smallest</em> one, so the winner of training is identical. Nielsen keeps the ½ because squares produce a factor of 2 when you take derivatives, and the ½ cancels it — a bookkeeping convenience we'll actually see pay off in lesson 8. If a paper's loss looks twice as big or small as yours, this is usually why.</p>
+
+  <h2>The reframe that unlocks training</h2>
+  <p>Now the most important sentence of phase 3. Look at Nielsen's left-hand side again: he writes the cost as <code>C(w, b)</code> — a function <em>of the weights and biases</em>. Not of the photos. The training data is frozen; you can't make the cat more cat-like. The only knobs that exist are <code>w</code> and <code>b</code> — and every time you turn one, every prediction shifts, so the loss shifts.</p>
+  <p>Make that concrete with the lesson-1 neuron <code>a = σ(w·x + b)</code>, one input <code>x = 1</code>, bias 0, target <code>y = 1</code>. Turn only the weight knob:</p>
+  <div class="formula" style="text-align:center">
+    w = 0:&nbsp; a = σ(0) = 0.5,&nbsp; loss = (0.5 − 1)² = 0.25<br>
+    w = 2:&nbsp; a = σ(2) ≈ 0.8808,&nbsp; loss ≈ (0.8808 − 1)² ≈ 0.0142
+  </div>
+  <p>Same data, same target — one knob moved, and the loss collapsed from 0.25 to about 0.014. So here's the reframe: <strong>the loss is a landscape over the weights</strong>, and <strong>training is nothing more than searching that landscape for the weights with the lowest loss</strong>. The mysterious word "learning" has just become an optimization problem a programmer can respect. The obvious next question — <em>which way</em> should each knob turn, without trying every combination? — has a beautiful answer called gradient descent. That's <a href="0007-gradient-descent.html">lesson 7</a>: walking downhill on the loss.</p>
+
+  <div class="sidenote"><strong>Parked for later:</strong> MSE isn't the only loss. For classification tasks ("which digit is this?") a loss called <strong>cross-entropy</strong> usually trains better — Nielsen devotes a section of <a href="http://neuralnetworksanddeeplearning.com/chap3.html">chapter 3</a> to it. Everything you learned today (one number, function of the weights, minimize it) transfers unchanged; only the scoring recipe swaps.</div>
+
+  <h2>Check yourself</h2>
+  <p>No peeking back. Pull it from memory.</p>
+
+  <div class="quiz" id="quiz1">
+    <div class="q">1. Why square each miss before averaging?</div>
+    <button class="opt" data-c="0">squaring keeps the sign and shrinks big misses</button>
+    <button class="opt" data-c="1">squaring kills the sign and magnifies big misses</button>
+    <button class="opt" data-c="0">squaring flips the sign and equalizes big misses</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz2">
+    <div class="q">2. In the MSE formula, what is ŷ ("y-hat")?</div>
+    <button class="opt" data-c="0">the true target stored in the training data</button>
+    <button class="opt" data-c="0">the total count of examples in the set</button>
+    <button class="opt" data-c="1">the prediction the network produced for that example</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz3">
+    <div class="q">3. Loss is a function of the weights. Training therefore means:</div>
+    <button class="opt" data-c="1">finding the weights that make loss as small as possible</button>
+    <button class="opt" data-c="0">finding the inputs that make loss as small as possible</button>
+    <button class="opt" data-c="0">finding the weights that keep loss as fixed as possible</button>
+    <div class="fb"></div>
+  </div>
+
+  <h2>Read this next</h2>
+  <p>Primary source: <a href="http://neuralnetworksanddeeplearning.com/chap1.html"><strong>Nielsen, <em>Neural Networks and Deep Learning</em>, chapter 1</strong></a> — scroll to the section <em>"Learning with gradient descent"</em>. Its first half is exactly today's lesson in his notation: the quadratic cost, why it must be smooth, and why minimizing it over weights and biases <em>is</em> learning. The second half is a preview of lesson 7 — read it if you're hungry.</p>
+
+  <footer>
+    <p><strong>Your win today:</strong> you computed mean squared error by hand for a real prediction set — and you now know that "learning" just means turning the weight knobs until that one number is as small as it can get.</p>
+    <p>Previous: <a href="0005-activation-functions.html">Lesson 5 — Activation Functions (ReLU &amp; friends)</a> · Next: <a href="0007-gradient-descent.html">Lesson 7 — Gradient Descent</a></p>
+  </footer>
+</div>
+
+<script>
+  const $=id=>document.getElementById(id);
+  const T=[1,0,1];
+  function update(){
+    let total=0, biggest=0;
+    [1,2,3].forEach(i=>{
+      const p=+$('p'+i).value;
+      $('p'+i+'v').textContent=p.toFixed(2);
+      const sq=(p-T[i-1])*(p-T[i-1]);
+      total+=sq; biggest=Math.max(biggest,sq);
+      $('sq'+i).textContent=sq.toFixed(2);
+      $('fb'+i).style.width=(sq*100)+'%';
+    });
+    const mse=total/3;
+    $('mse').textContent=mse.toFixed(3);
+    $('fmse').style.width=(mse*100)+'%';
+    $('msg').textContent = mse<0.005
+      ? 'Near zero — predictions match targets. Loss has a floor at 0, and you are standing on it.'
+      : (biggest>=0.25
+        ? 'One big miss is dominating the average — squaring punishes large misses far harder than small ones.'
+        : 'Every nudge moves the loss instantly — that smoothness is what learning will exploit. Can you reach 0.000?');
+  }
+  ['p1','p2','p3'].forEach(id=>$(id).addEventListener('input',update));
+  update();
+
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      const t=tab.dataset.t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.t===t));
+      document.querySelectorAll('.codeblock').forEach(c=>c.hidden=(c.dataset.lang!==t));
+    });
+  });
+
+  document.querySelectorAll('.quiz').forEach(q=>{
+    q.querySelectorAll('.opt').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        if(q.dataset.done) return;
+        q.dataset.done=1;
+        const correct=btn.dataset.c==='1';
+        btn.classList.add(correct?'correct':'wrong');
+        if(!correct){
+          q.querySelector('.opt[data-c="1"]').classList.add('correct');
+        }
+        q.querySelector('.fb').textContent = correct ? 'Correct — locked in.' : 'Not quite — the green one is right.';
+      });
+    });
+  });
+</script>
+<script>
+(function(){
+  var b=document.getElementById('themeToggle');
+  function sync(){b.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀':'☾';}
+  b.addEventListener('click',function(){
+    var next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{localStorage.setItem('book-theme',next);}catch(e){}
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

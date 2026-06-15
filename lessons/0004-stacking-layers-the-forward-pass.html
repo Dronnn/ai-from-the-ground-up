@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 4 — Stacking Layers: the Forward Pass</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.55; margin:0; padding:3rem 1.2rem 5rem;
+  }
+  .wrap{max-width:680px; margin:0 auto}
+  .kicker{font-variant:small-caps; letter-spacing:.08em; color:var(--accent);
+    font-size:.95rem; margin-bottom:.2rem}
+  h1{font-size:2.1rem; line-height:1.15; margin:.1rem 0 1.2rem; font-weight:600}
+  h2{font-size:1.3rem; margin:2.4rem 0 .6rem; font-weight:600}
+  p{margin:.7rem 0}
+  .lead{font-size:1.12rem; color:#33312c}
+  .formula{
+    background:var(--soft); border-left:3px solid var(--accent);
+    padding:.9rem 1.1rem; margin:1.2rem 0; font-size:1.15rem;
+    font-family:"Latin Modern Math","Cambria Math",Georgia,serif; overflow-x:auto;
+  }
+  code{font-family:"SF Mono",Menlo,Consolas,monospace; font-size:.92em;
+    background:var(--soft); padding:.1em .35em; border-radius:3px}
+  a{color:var(--accent)}
+  .sidenote{font-size:.9rem; color:#5a564c; border-top:1px solid var(--rule);
+    border-bottom:1px solid var(--rule); padding:.7rem 0; margin:1.4rem 0}
+
+  /* interactive widget */
+  .widget{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .row{display:grid; grid-template-columns:90px 1fr 70px; gap:.8rem; align-items:center;
+    margin:.55rem 0}
+  .row label{font-variant:small-caps; letter-spacing:.04em; color:#444}
+  input[type=range]{width:100%}
+  .val{font-family:"SF Mono",Menlo,monospace; text-align:right}
+  .out{margin-top:1rem; padding-top:1rem; border-top:1px dashed var(--rule)}
+  .bar{height:22px; background:var(--soft); border-radius:11px; overflow:hidden; margin-top:.4rem}
+  .fill{height:100%; width:0; background:var(--accent); transition:width .12s}
+  .big{font-size:1.5rem; font-family:"SF Mono",Menlo,monospace}
+
+  /* code */
+  .tabs{display:flex; gap:.4rem; margin:1.2rem 0 0}
+  .tab{font:inherit; font-size:.9rem; font-variant:small-caps; letter-spacing:.05em;
+    border:1px solid var(--rule); border-bottom:none; background:var(--soft);
+    padding:.45rem 1rem; border-radius:6px 6px 0 0; cursor:pointer; color:#666}
+  .tab.active{background:#272521; color:#f3f0e7}
+  .codeblock{margin:0 0 1rem; background:#272521; color:#f3f0e7; border-radius:0 6px 6px 6px;
+    padding:1rem 1.1rem; overflow-x:auto}
+  .codeblock code{background:none; color:inherit; font-size:.86rem; line-height:1.5;
+    font-family:"SF Mono",Menlo,Consolas,monospace; white-space:pre}
+
+  /* quiz */
+  .quiz{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .q{font-weight:600; margin-bottom:.6rem}
+  .opt{display:block; width:100%; text-align:left; border:1px solid var(--rule);
+    background:var(--paper); padding:.6rem .8rem; margin:.4rem 0; border-radius:6px;
+    cursor:pointer; font:inherit}
+  .opt:hover{background:var(--soft)}
+  .opt.correct{border-color:var(--good); background:#eef7f0}
+  .opt.wrong{border-color:var(--bad); background:#f9eeee}
+  .fb{margin-top:.5rem; font-size:.95rem; min-height:1.2em}
+  footer{margin-top:3rem; border-top:1px solid var(--rule); padding-top:1rem;
+    font-size:.92rem; color:#5a564c}
+
+  /* lesson-4 additions: network diagram + results table */
+  .togglerow{display:flex; gap:.8rem; align-items:center; flex-wrap:wrap; margin-bottom:.6rem}
+  .toggle{font-family:"SF Mono",Menlo,monospace; font-size:1rem; border:1px solid var(--rule);
+    background:var(--paper); padding:.5rem 1.1rem; border-radius:6px; cursor:pointer}
+  .toggle:hover{background:var(--soft)}
+  .hint{font-size:.85rem; color:#5a564c}
+  .net{width:100%; height:auto; display:block; margin-top:.4rem}
+  .node{fill:#fff; stroke:var(--rule); stroke-width:1.5;
+    transition:stroke .3s, fill .3s}
+  .node.hot{stroke:var(--accent); fill:#faf1ec}
+  .edge{stroke:#c9c4b6; stroke-width:1.5; fill:none; transition:stroke .3s, stroke-width .3s}
+  .edge.hot{stroke:var(--accent); stroke-width:2.5}
+  .tname{font-family:Georgia,serif; font-size:14px; fill:#444}
+  .thead{font-family:Georgia,serif; font-size:12px; fill:#8a857a; letter-spacing:.08em}
+  .tnum{font-family:"SF Mono",Menlo,monospace; font-size:13px; fill:#1a1a1a}
+  .twt{font-family:"SF Mono",Menlo,monospace; font-size:12px; fill:#7a756a}
+  .tverdict{font-family:"SF Mono",Menlo,monospace; font-size:19px; fill:var(--accent)}
+  table.tt{border-collapse:collapse; width:100%; margin:1.2rem 0; font-size:.92rem}
+  table.tt th{font-variant:small-caps; letter-spacing:.04em; font-weight:600; color:#444}
+  table.tt th, table.tt td{border:1px solid var(--rule); padding:.4rem .6rem; text-align:center}
+  table.tt td{font-family:"SF Mono",Menlo,monospace; font-size:.85rem}
+  table.tt td.on{background:#eef7f0}
+
+  /* dark theme: warm sepia night */
+  html[data-theme="dark"]{color-scheme:dark;
+    --ink:#e8e3d6; --paper:#201d18; --rule:#3d382f; --accent:#c97b6f;
+    --soft:#2a2620; --good:#8fbf9c; --bad:#d98a80}
+  html[data-theme="dark"] .lead{color:#cfc9bb}
+  html[data-theme="dark"] .sidenote, html[data-theme="dark"] footer,
+  html[data-theme="dark"] .phase-sub, html[data-theme="dark"] .desc,
+  html[data-theme="dark"] .sub, html[data-theme="dark"] .note{color:#a89f8d}
+  html[data-theme="dark"] [style*="#5a564c"]{color:#a89f8d!important}
+  html[data-theme="dark"] .quiz{background:#26221c}
+  html[data-theme="dark"] .opt.correct{background:#2a3a2e}
+  html[data-theme="dark"] .opt.wrong{background:#3d2a27}
+  html[data-theme="dark"] .tab{color:#9a9183}
+  /* widgets stay light: printed-figure look, keeps all verified canvas/SVG colors intact */
+  html[data-theme="dark"] .widget{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+    background:#fff; color:#1a1a1a; color-scheme:light}
+  .themetoggle{position:fixed; top:14px; right:14px; z-index:50; width:38px; height:38px;
+    border-radius:50%; border:1px solid var(--rule); background:var(--soft); color:var(--ink);
+    font-size:1rem; cursor:pointer; line-height:1; font-family:inherit}
+  .themetoggle:hover{border-color:var(--accent)}
+  @media print{.themetoggle{display:none}
+    html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+      --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a}}
+  html[data-theme="dark"] .wrap > table.tt th{color:#b3aa99}
+  html[data-theme="dark"] .wrap > table.tt td.on{background:#2a3a2e}
+</style>
+<script>(function(){var t=localStorage.getItem('book-theme');
+if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+document.documentElement.setAttribute('data-theme',t);})()</script>
+</head>
+<body>
+<button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
+<div class="wrap">
+  <div class="kicker">AI Foundations · Lesson 4 · Phase 2 — Many neurons → a network</div>
+  <h1>Stacking Layers — the Forward Pass</h1>
+  <p class="lead">In lesson 3 you built one layer: a column of neurons all reading the same inputs. Today you plug the output of one layer into the input of the next — and a stack of layers is, finally, a <strong>neural network</strong>. The trip data takes through that stack, input to output, is called the <strong>forward pass</strong>, and it is the only thing the model you'll train at the end of this course ever does when you use it. As a bonus, stacking cracks the puzzle lesson 2 left open: XOR.</p>
+
+  <h2>A network is layers plugged into each other</h2>
+  <p>You already know everything inside a layer: each neuron computes its weighted sum <code>z</code>, adds its bias, and squashes through σ. The single new idea today is the <em>hand-off</em>: the activations coming out of layer 1 become the inputs going into layer 2. Nothing else changes — layer 2's neurons don't know or care that their inputs were produced by other neurons. As <a href="http://neuralnetworksanddeeplearning.com/chap1.html">Michael Nielsen</a> puts it, these are networks "where the output from one layer is used as input to the next layer" — called <strong>feedforward</strong> networks, because information always flows forward, never backward in a loop (<a href="https://en.wikipedia.org/wiki/Feedforward_neural_network">Wikipedia</a>).</p>
+  <p>Names you need, all three boring once you see them: the <strong>input layer</strong> is just your raw numbers; the <strong>output layer</strong> is the last column of neurons, whose activations are the network's answer; and every layer in between is a <strong>hidden layer</strong>. Nielsen admits the word fooled him too — "it really means nothing more than 'not an input or an output'". One more word: <strong>depth</strong> is how many layers a network has, and by convention the input layer is not counted (<a href="https://cs231n.github.io/neural-networks-1/">CS231n</a>). Today's network has 2 inputs, one hidden layer of 2 neurons, and 1 output neuron — a "2→2→1" network, depth 2.</p>
+
+  <h2>Feel it: flip two bits, watch XOR appear</h2>
+  <p>Lesson 2 ended on a cliffhanger: a single neuron draws one straight line through its input space, and the four points of <strong>XOR</strong> ("exclusive or" — output 1 exactly when the two inputs differ) cannot be split by any single straight line. A network with a hidden layer can do it (<a href="https://en.wikipedia.org/wiki/Feedforward_neural_network">Wikipedia</a>). Below is a real 2→2→1 sigmoid network with the weights written on the wires and the biases under each neuron. Flip the inputs and watch the values flow left to right — each neuron shows its <code>z</code> and its activation <code>a</code> live.</p>
+
+  <div class="widget">
+    <div class="togglerow">
+      <button class="toggle" id="tg1">x₁ = 0</button>
+      <button class="toggle" id="tg2">x₂ = 1</button>
+      <span class="hint">click to flip an input — then watch the wave move right</span>
+    </div>
+    <svg class="net" viewBox="0 0 640 330" aria-label="2-2-1 network diagram">
+      <text class="thead" x="62" y="22" text-anchor="middle">INPUT</text>
+      <text class="thead" x="305" y="22" text-anchor="middle">HIDDEN LAYER</text>
+      <text class="thead" x="530" y="22" text-anchor="middle">OUTPUT</text>
+      <!-- layer 1 edges -->
+      <line class="edge e1" x1="86" y1="105" x2="230" y2="90"/>
+      <line class="edge e1" x1="86" y1="225" x2="230" y2="120"/>
+      <line class="edge e1" x1="86" y1="105" x2="230" y2="210"/>
+      <line class="edge e1" x1="86" y1="225" x2="230" y2="240"/>
+      <!-- layer 2 edges -->
+      <line class="edge e2" x1="380" y1="105" x2="455" y2="150"/>
+      <line class="edge e2" x1="380" y1="225" x2="455" y2="180"/>
+      <!-- weights on the wires -->
+      <text class="twt" x="204" y="82">20</text>
+      <text class="twt" x="204" y="133">20</text>
+      <text class="twt" x="196" y="198">−20</text>
+      <text class="twt" x="196" y="253">−20</text>
+      <text class="twt" x="412" y="118">20</text>
+      <text class="twt" x="412" y="215">20</text>
+      <!-- input nodes -->
+      <circle class="node" id="nx1" cx="62" cy="105" r="24"/>
+      <text class="tnum" id="x1n" x="62" y="110" text-anchor="middle" font-size="17">0</text>
+      <circle class="node" id="nx2" cx="62" cy="225" r="24"/>
+      <text class="tnum" id="x2n" x="62" y="230" text-anchor="middle" font-size="17">1</text>
+      <!-- hidden nodes -->
+      <rect class="node" id="nh1" x="230" y="63" width="150" height="84" rx="10"/>
+      <text class="tname" x="305" y="85" text-anchor="middle">h₁ — the OR gate</text>
+      <text class="tnum" id="h1z" x="305" y="108" text-anchor="middle">z = 10</text>
+      <text class="tnum" id="h1a" x="305" y="130" text-anchor="middle">a = 0.99995</text>
+      <text class="twt" x="305" y="161" text-anchor="middle">b = −10</text>
+      <rect class="node" id="nh2" x="230" y="183" width="150" height="84" rx="10"/>
+      <text class="tname" x="305" y="205" text-anchor="middle">h₂ — the NAND gate</text>
+      <text class="tnum" id="h2z" x="305" y="228" text-anchor="middle">z = 10</text>
+      <text class="tnum" id="h2a" x="305" y="250" text-anchor="middle">a = 0.99995</text>
+      <text class="twt" x="305" y="281" text-anchor="middle">b = +30</text>
+      <!-- output node -->
+      <rect class="node" id="no" x="455" y="123" width="150" height="84" rx="10"/>
+      <text class="tname" x="530" y="145" text-anchor="middle">out — the AND gate</text>
+      <text class="tnum" id="oz" x="530" y="168" text-anchor="middle">z = 9.9982</text>
+      <text class="tnum" id="oa" x="530" y="190" text-anchor="middle">a = 0.99995</text>
+      <text class="twt" x="530" y="221" text-anchor="middle">b = −30</text>
+      <!-- verdict -->
+      <text class="tverdict" id="verdict" x="320" y="322" text-anchor="middle">0 XOR 1 = 1</text>
+    </svg>
+  </div>
+
+  <p>The trick, neuron by neuron. Hidden neuron <strong>h₁</strong> (weights 20, 20, bias −10) fires when <em>at least one</em> input is 1 — it's an OR gate. Hidden neuron <strong>h₂</strong> (weights −20, −20, bias +30) fires <em>unless both</em> inputs are 1 — a NAND gate ("not-and"). The output neuron (weights 20, 20, bias −30) fires only when <em>both</em> hidden neurons fire — an AND gate. And "at least one, but not both" is exactly XOR. Why the dramatic ±20s instead of gentle weights? Sigmoid saturation: you saw in lesson 1 that big <code>z</code> pins σ near 0 or 1. Here σ(10) ≈ 0.99995 and σ(−10) ≈ 0.00005, so each neuron's activation is a near-perfect logical bit.</p>
+
+  <h2>All four cases, checked by hand</h2>
+  <p>Here is the full forward pass for every input pair — every number in this table comes straight out of running the code below, and it matches what the diagram shows:</p>
+  <table class="tt">
+    <tr><th>x₁</th><th>x₂</th><th>h₁: z</th><th>h₁: a</th><th>h₂: z</th><th>h₂: a</th><th>out: z</th><th>out: a</th><th>≈ XOR</th></tr>
+    <tr><td>0</td><td>0</td><td>−10</td><td>0.00005</td><td>30</td><td>1.00000</td><td>−9.9991</td><td>0.00005</td><td>0</td></tr>
+    <tr><td>0</td><td>1</td><td>10</td><td>0.99995</td><td>10</td><td>0.99995</td><td>9.9982</td><td>0.99995</td><td class="on">1</td></tr>
+    <tr><td>1</td><td>0</td><td>10</td><td>0.99995</td><td>10</td><td>0.99995</td><td>9.9982</td><td>0.99995</td><td class="on">1</td></tr>
+    <tr><td>1</td><td>1</td><td>30</td><td>1.00000</td><td>−10</td><td>0.00005</td><td>−9.9991</td><td>0.00005</td><td>0</td></tr>
+  </table>
+  <p class="sidenote">Notice the output's <code>z</code> is −9.9991, not a clean −10 — because the hidden activations feeding it are 0.00005 and 1.00000, not perfect bits. Tiny imprecision flows through the chain, and the chain shrugs it off. Also notice what just happened conceptually: each hidden neuron still draws a straight line, but the output neuron draws <em>its</em> line in h₁–h₂ coordinates — and seen from the original inputs, the combined boundary is no longer one straight line. That's why networks with hidden layers can "distinguish data that is not linearly separable" (<a href="https://en.wikipedia.org/wiki/Feedforward_neural_network">Wikipedia</a>), and it only gets richer with more neurons and depth.</p>
+
+  <h2>Write it in code</h2>
+  <p>The whole network is your lesson-3 <code>layer</code> function called twice — the second call eats the first call's result. Paste the Python into a fresh <a href="https://colab.research.google.com">Google Colab</a> notebook and run it; the Swift runs as-is in an Xcode playground. Both print the table's last column.</p>
+
+  <div class="tabs">
+    <button class="tab active" data-t="swift">Swift</button>
+    <button class="tab" data-t="py">Python</button>
+  </div>
+
+  <pre class="codeblock" data-lang="swift"><code>import Foundation
+
+func sigmoid(_ z: Double) -> Double { 1 / (1 + exp(-z)) }
+
+// one layer: every neuron does weighted sum + bias, then sigmoid
+func layer(_ inputs: [Double], _ weights: [[Double]], _ biases: [Double]) -> [Double] {
+    var out: [Double] = []
+    for n in 0..&lt;weights.count {
+        var z = biases[n]
+        for i in 0..&lt;inputs.count { z += weights[n][i] * inputs[i] }
+        out.append(sigmoid(z))
+    }
+    return out
+}
+
+let W1 = [[20.0, 20.0], [-20.0, -20.0]]   // h1 = OR, h2 = NAND
+let b1 = [-10.0, 30.0]
+let W2 = [[20.0, 20.0]]                   // output = AND
+let b2 = [-30.0]
+
+for x in [[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]] {
+    let h = layer(x, W1, b1)    // layer 1: input -> hidden
+    let y = layer(h, W2, b2)    // layer 2: hidden -> output
+    print("\(Int(x[0])) XOR \(Int(x[1]))  ->  \(String(format: "%.5f", y[0]))")
+}
+// 0 XOR 0  ->  0.00005
+// 0 XOR 1  ->  0.99995
+// 1 XOR 0  ->  0.99995
+// 1 XOR 1  ->  0.00005</code></pre>
+
+  <pre class="codeblock" data-lang="py" hidden><code>import math
+
+def sigmoid(z):
+    return 1 / (1 + math.exp(-z))
+
+# one layer: every neuron does weighted sum + bias, then sigmoid
+def layer(inputs, weights, biases):
+    out = []
+    for w_row, b in zip(weights, biases):
+        z = b
+        for x, w in zip(inputs, w_row):
+            z += w * x
+        out.append(sigmoid(z))
+    return out
+
+W1 = [[20.0, 20.0], [-20.0, -20.0]]   # h1 = OR, h2 = NAND
+b1 = [-10.0, 30.0]
+W2 = [[20.0, 20.0]]                   # output = AND
+b2 = [-30.0]
+
+for x in ([0, 0], [0, 1], [1, 0], [1, 1]):
+    h = layer(x, W1, b1)    # layer 1: input -> hidden
+    y = layer(h, W2, b2)    # layer 2: hidden -> output
+    print(f"{x[0]} XOR {x[1]}  ->  {y[0]:.5f}")
+
+# 0 XOR 0  ->  0.00005
+# 0 XOR 1  ->  0.99995
+# 1 XOR 0  ->  0.99995
+# 1 XOR 1  ->  0.00005</code></pre>
+
+  <p class="sidenote">Look at the loop body: <code>h = layer(x, …)</code> then <code>y = layer(h, …)</code>. The variable <code>h</code> is the entire hand-off — layer 1's output becoming layer 2's input. Two function calls. That is a neural network running.</p>
+
+  <h2>The real formula — three ways to write it</h2>
+  <p>Same drill as lesson 1: you've driven it and coded it, now name it — spelled out first, then tighter.</p>
+
+  <h3 style="margin:1.4rem 0 .3rem; font-size:1.05rem">① The easy way — every neuron spelled out</h3>
+  <div class="formula" style="text-align:center; font-size:1.15rem">
+    z₁ = w₁₁·x₁ + w₁₂·x₂ + b₁ ,&nbsp;&nbsp; h₁ = σ(z₁)<br>
+    z₂ = w₂₁·x₁ + w₂₂·x₂ + b₂ ,&nbsp;&nbsp; h₂ = σ(z₂)<br>
+    z₃ = v₁·<strong>h₁</strong> + v₂·<strong>h₂</strong> + c ,&nbsp;&nbsp; y = σ(z₃)
+  </div>
+  <p>Lines 1–2 are plain lesson-1 neurons reading the inputs: <code>w₁₂</code> just means "h₁'s weight for input 2", <code>b₁</code>, <code>b₂</code> are the hidden biases. Line 3 is the only new thing in this whole lesson — the output neuron's inputs are <strong>h₁ and h₂</strong>, not x. (Its weights are named <code>v</code> and its bias <code>c</code> only so you can see at a glance they belong to a different layer.) <strong>If you only remember this, you understand the forward pass.</strong></p>
+
+  <h3 style="margin:1.6rem 0 .3rem; font-size:1.05rem">② The layer way — lesson 3's shorthand, twice</h3>
+  <div class="formula" style="text-align:center; font-size:1.25rem">
+    <strong>h</strong> = σ( W<sup>(1)</sup>·<strong>x</strong> + <strong>b</strong><sup>(1)</sup> )<br>
+    <strong>y</strong> = σ( W<sup>(2)</sup>·<strong>h</strong> + <strong>b</strong><sup>(2)</sup> )
+  </div>
+  <p>Read the symbols: <strong>x</strong> is the input vector; W<sup>(1)</sup> is layer 1's weight matrix (one row per hidden neuron — exactly lesson 3); <strong>b</strong><sup>(1)</sup> its biases; the superscript <code>(1)</code> means "belongs to layer 1" — it is a label, <em>not</em> a power. Now watch <strong>h</strong>: it ends line one as the result and starts line two as the input. That hand-off, repeated layer after layer, <em>is</em> the forward pass — "one matrix multiplication followed by a bias offset and an activation function" per layer (<a href="https://cs231n.github.io/neural-networks-1/">CS231n</a>).</p>
+
+  <h3 style="margin:1.6rem 0 .3rem; font-size:1.05rem">③ The popular way — one rule for any depth</h3>
+  <div class="formula" style="text-align:center; font-size:1.3rem">
+    <strong>a</strong><sup>(ℓ)</sup> = σ( W<sup>(ℓ)</sup>·<strong>a</strong><sup>(ℓ−1)</sup> + <strong>b</strong><sup>(ℓ)</sup> )
+  </div>
+  <p>Here <code>ℓ</code> counts layers: <strong>a</strong><sup>(0)</sup> is defined as the input <strong>x</strong>, and the rule says "layer ℓ's activations come from layer ℓ−1's activations". Apply it for ℓ = 1, then ℓ = 2, … up to the last layer — a <code>for</code> loop over layers, one line per turn. <a href="http://neuralnetworksanddeeplearning.com/chap1.html">Nielsen</a> writes the same rule as <code>a′ = σ(w·a + b)</code>: new activations from old. In code: <code>var a = x; for l in layers { a = l.forward(a) }</code>. A 100-layer network and our 2→2→1 toy run the exact same one-liner — only the loop count differs.</p>
+
+  <div class="sidenote">
+    <strong>One word for the road: inference.</strong> Training (phase 3 of this course) is how the weights get their values. But once training is done, using the network — every autocomplete, every photo tag — is just the forward pass you ran today, with better weights. That deployed, weights-frozen mode is called <em>inference</em>. You now know everything a trained network does at runtime.
+  </div>
+
+  <h2>Check yourself</h2>
+  <p>No peeking back. Pull it from memory.</p>
+
+  <div class="quiz" id="quiz1">
+    <div class="q">1. What happens during the forward pass?</div>
+    <button class="opt" data-c="1">activations flow from input layer to output</button>
+    <button class="opt" data-c="0">weights update from output layer to input</button>
+    <button class="opt" data-c="0">errors travel from output layer to input</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz2">
+    <div class="q">2. A "hidden" layer is called hidden because it:</div>
+    <button class="opt" data-c="0">keeps its weights secret while it runs</button>
+    <button class="opt" data-c="0">cannot be printed out during a run</button>
+    <button class="opt" data-c="1">is neither the input nor the output</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz3">
+    <div class="q">3. Our network solves XOR because its hidden neurons compute:</div>
+    <button class="opt" data-c="0">AND and NOR, then the output ORs</button>
+    <button class="opt" data-c="1">OR and NAND, then the output ANDs</button>
+    <button class="opt" data-c="0">XOR and XOR, then the output NOTs</button>
+    <div class="fb"></div>
+  </div>
+
+  <h2>Watch this next</h2>
+  <p>Primary source: rewatch <a href="https://www.3blue1brown.com/lessons/neural-networks"><strong>"But what is a Neural Network?" by 3Blue1Brown</strong></a> — this time focus on the layers section. In lesson 1 you watched it for the single neuron; now you'll recognise the whole pipeline: how "the activation of each neuron in one layer … has some influence on the activation of each neuron in the next layer", through input, two hidden layers of 16, and out to ten digits. It's the same hand-off you just built, at scale.</p>
+
+  <footer>
+    <p><strong>Your win today:</strong> you pushed two bits through a real 2→2→1 network three ways — by hand, in Swift, and in Python — and watched a problem no single neuron can solve fall to two stacked layers.</p>
+    <p>Previous: <a href="0003-a-layer-of-neurons.html">Lesson 3 — A Layer of Neurons</a> · Next: <a href="0005-activation-functions.html">Lesson 5 — Activation Functions</a></p>
+  </footer>
+</div>
+
+<script>
+  const $=id=>document.getElementById(id);
+  const sig=z=>1/(1+Math.exp(-z));
+  const m=s=>s.replace(/-/g,'−');           // typographic minus
+  let xs=[0,1], timers=[];
+
+  function hot(sel,on){document.querySelectorAll(sel).forEach(e=>e.classList.toggle('hot',on));}
+
+  function run(){
+    timers.forEach(clearTimeout); timers=[];
+    hot('.hot',false);
+    $('tg1').textContent='x₁ = '+xs[0];
+    $('tg2').textContent='x₂ = '+xs[1];
+    $('x1n').textContent=xs[0]; $('x2n').textContent=xs[1];
+    hot('#nx1',true); hot('#nx2',true);
+
+    const z1=20*xs[0]+20*xs[1]-10,  a1=sig(z1);   // h1 = OR
+    const z2=-20*xs[0]-20*xs[1]+30, a2=sig(z2);   // h2 = NAND
+    const zo=20*a1+20*a2-30,        ao=sig(zo);   // out = AND
+    const bit=ao>0.5?1:0;
+
+    timers.push(setTimeout(()=>{
+      hot('.e1',true); hot('#nh1',true); hot('#nh2',true);
+      $('h1z').textContent=m('z = '+z1.toFixed(0));
+      $('h1a').textContent='a = '+a1.toFixed(5);
+      $('h2z').textContent=m('z = '+z2.toFixed(0));
+      $('h2a').textContent='a = '+a2.toFixed(5);
+    },200));
+    timers.push(setTimeout(()=>{
+      hot('.e2',true); hot('#no',true);
+      $('oz').textContent=m('z = '+zo.toFixed(4));
+      $('oa').textContent='a = '+ao.toFixed(5);
+      $('verdict').textContent=xs[0]+' XOR '+xs[1]+' = '+bit;
+    },850));
+    timers.push(setTimeout(()=>hot('.hot',false),1900));
+  }
+  $('tg1').addEventListener('click',()=>{xs[0]=1-xs[0];run();});
+  $('tg2').addEventListener('click',()=>{xs[1]=1-xs[1];run();});
+  run();
+
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      const t=tab.dataset.t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.t===t));
+      document.querySelectorAll('.codeblock').forEach(c=>c.hidden=(c.dataset.lang!==t));
+    });
+  });
+
+  document.querySelectorAll('.quiz').forEach(q=>{
+    q.querySelectorAll('.opt').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        if(q.dataset.done) return;
+        q.dataset.done=1;
+        const correct=btn.dataset.c==='1';
+        btn.classList.add(correct?'correct':'wrong');
+        if(!correct){
+          q.querySelector('.opt[data-c="1"]').classList.add('correct');
+        }
+        q.querySelector('.fb').textContent = correct ? 'Correct — locked in.' : 'Not quite — the green one is right.';
+      });
+    });
+  });
+</script>
+<script>
+(function(){
+  var b=document.getElementById('themeToggle');
+  function sync(){b.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀':'☾';}
+  b.addEventListener('click',function(){
+    var next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{localStorage.setItem('book-theme',next);}catch(e){}
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

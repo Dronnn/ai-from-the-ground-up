@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 12 — Real Data: Handwritten Digits</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.55; margin:0; padding:3rem 1.2rem 5rem;
+  }
+  .wrap{max-width:680px; margin:0 auto}
+  .kicker{font-variant:small-caps; letter-spacing:.08em; color:var(--accent);
+    font-size:.95rem; margin-bottom:.2rem}
+  h1{font-size:2.1rem; line-height:1.15; margin:.1rem 0 1.2rem; font-weight:600}
+  h2{font-size:1.3rem; margin:2.4rem 0 .6rem; font-weight:600}
+  p{margin:.7rem 0}
+  .lead{font-size:1.12rem; color:#33312c}
+  .formula{
+    background:var(--soft); border-left:3px solid var(--accent);
+    padding:.9rem 1.1rem; margin:1.2rem 0; font-size:1.15rem;
+    font-family:"Latin Modern Math","Cambria Math",Georgia,serif; overflow-x:auto;
+  }
+  code{font-family:"SF Mono",Menlo,Consolas,monospace; font-size:.92em;
+    background:var(--soft); padding:.1em .35em; border-radius:3px}
+  a{color:var(--accent)}
+  .sidenote{font-size:.9rem; color:#5a564c; border-top:1px solid var(--rule);
+    border-bottom:1px solid var(--rule); padding:.7rem 0; margin:1.4rem 0}
+
+  /* interactive widget */
+  .widget{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .row{display:grid; grid-template-columns:90px 1fr 70px; gap:.8rem; align-items:center;
+    margin:.55rem 0}
+  .row label{font-variant:small-caps; letter-spacing:.04em; color:#444}
+  input[type=range]{width:100%}
+  .val{font-family:"SF Mono",Menlo,monospace; text-align:right}
+  .out{margin-top:1rem; padding-top:1rem; border-top:1px dashed var(--rule)}
+  .bar{height:22px; background:var(--soft); border-radius:11px; overflow:hidden; margin-top:.4rem}
+  .fill{height:100%; width:0; background:var(--accent); transition:width .12s}
+  .big{font-size:1.5rem; font-family:"SF Mono",Menlo,monospace}
+
+  /* code */
+  .tabs{display:flex; gap:.4rem; margin:1.2rem 0 0}
+  .tab{font:inherit; font-size:.9rem; font-variant:small-caps; letter-spacing:.05em;
+    border:1px solid var(--rule); border-bottom:none; background:var(--soft);
+    padding:.45rem 1rem; border-radius:6px 6px 0 0; cursor:pointer; color:#666}
+  .tab.active{background:#272521; color:#f3f0e7}
+  .codeblock{margin:0 0 1rem; background:#272521; color:#f3f0e7; border-radius:0 6px 6px 6px;
+    padding:1rem 1.1rem; overflow-x:auto}
+  .codeblock code{background:none; color:inherit; font-size:.86rem; line-height:1.5;
+    font-family:"SF Mono",Menlo,Consolas,monospace; white-space:pre}
+
+  /* quiz */
+  .quiz{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .q{font-weight:600; margin-bottom:.6rem}
+  .opt{display:block; width:100%; text-align:left; border:1px solid var(--rule);
+    background:var(--paper); padding:.6rem .8rem; margin:.4rem 0; border-radius:6px;
+    cursor:pointer; font:inherit}
+  .opt:hover{background:var(--soft)}
+  .opt.correct{border-color:var(--good); background:#eef7f0}
+  .opt.wrong{border-color:var(--bad); background:#f9eeee}
+  .fb{margin-top:.5rem; font-size:.95rem; min-height:1.2em}
+  footer{margin-top:3rem; border-top:1px solid var(--rule); padding-top:1rem;
+    font-size:.92rem; color:#5a564c}
+
+  /* lesson-12 extras: digit gallery + pipeline */
+  .glyphs{display:grid; grid-template-columns:repeat(8,1fr); gap:.5rem; margin:.6rem 0 1rem}
+  @media(max-width:520px){.glyphs{grid-template-columns:repeat(4,1fr)}}
+  .glyph{border:1px solid var(--rule); border-radius:6px; background:var(--paper);
+    cursor:pointer; padding:.3rem; transition:border-color .15s, background .15s}
+  .glyph:hover,.glyph.sel{border-color:var(--accent); background:var(--soft)}
+  .glyph svg{display:block; width:100%; height:auto}
+  .pipe{display:flex; align-items:center; gap:.4rem; flex-wrap:wrap;
+    font-family:"SF Mono",Menlo,monospace; font-size:.78rem}
+  .stage{border:1px solid var(--rule); border-radius:6px; padding:.35rem .55rem;
+    background:var(--soft); transition:background .2s, color .2s}
+  .stage.lit{background:var(--accent); color:#fdfcf8}
+  .parrow{color:#999}
+  .cells{display:flex; gap:3px; margin-top:.8rem}
+  .cell{flex:1; text-align:center; font-family:"SF Mono",Menlo,monospace; font-size:.75rem;
+    color:#5a564c}
+  .cellbar{height:36px; display:flex; align-items:flex-end; background:var(--soft);
+    border-radius:3px; overflow:hidden; margin-bottom:.2rem}
+  .cellfill{width:100%; height:4%; background:#b9b2a0; transition:height .25s}
+  .cell.win .cellfill{background:var(--accent)}
+  .cell.win{color:var(--accent); font-weight:700}
+  .verdict{margin-top:.6rem; font-size:.95rem; min-height:1.3em}
+
+  /* course-recap checklist */
+  .item{display:block; width:100%; text-align:left; border:1px solid var(--rule);
+    background:var(--paper); padding:.45rem .7rem; margin:.35rem 0; border-radius:6px;
+    cursor:pointer; font:inherit; font-size:.95rem}
+  .item:hover{background:var(--soft)}
+  .item::before{content:"○ "; color:#999}
+  .item.done{border-color:var(--good); background:#eef7f0}
+  .item.done::before{content:"● "; color:var(--good)}
+  .tally{margin-top:.8rem; padding-top:.8rem; border-top:1px dashed var(--rule); font-weight:600}
+
+  /* dark theme: warm sepia night */
+  html[data-theme="dark"]{color-scheme:dark;
+    --ink:#e8e3d6; --paper:#201d18; --rule:#3d382f; --accent:#c97b6f;
+    --soft:#2a2620; --good:#8fbf9c; --bad:#d98a80}
+  html[data-theme="dark"] .lead{color:#cfc9bb}
+  html[data-theme="dark"] .sidenote, html[data-theme="dark"] footer,
+  html[data-theme="dark"] .phase-sub, html[data-theme="dark"] .desc,
+  html[data-theme="dark"] .sub, html[data-theme="dark"] .note{color:#a89f8d}
+  html[data-theme="dark"] [style*="#5a564c"]{color:#a89f8d!important}
+  html[data-theme="dark"] .quiz{background:#26221c}
+  html[data-theme="dark"] .opt.correct{background:#2a3a2e}
+  html[data-theme="dark"] .opt.wrong{background:#3d2a27}
+  html[data-theme="dark"] .tab{color:#9a9183}
+  /* widgets stay light: printed-figure look, keeps all verified canvas/SVG colors intact */
+  html[data-theme="dark"] .widget{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+    background:#fff; color:#1a1a1a; color-scheme:light}
+  .themetoggle{position:fixed; top:14px; right:14px; z-index:50; width:38px; height:38px;
+    border-radius:50%; border:1px solid var(--rule); background:var(--soft); color:var(--ink);
+    font-size:1rem; cursor:pointer; line-height:1; font-family:inherit}
+  .themetoggle:hover{border-color:var(--accent)}
+  @media print{.themetoggle{display:none}
+    html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+      --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a}}
+</style>
+<script>(function(){var t=localStorage.getItem('book-theme');
+if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+document.documentElement.setAttribute('data-theme',t);})()</script>
+</head>
+<body>
+<button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
+<div class="wrap">
+  <div class="kicker">AI Foundations · Lesson 12 · Phase 4 — Build your own</div>
+  <h1>Real Data — Handwritten Digits</h1>
+  <p class="lead">This is the finish line. Eleven lessons ago, a single neuron multiplied two numbers. Today you hand a network 70,000 scans of real human handwriting and watch it learn to read digits it has never seen, at roughly 97% accuracy. Your own model, on real data — the exact thing this course promised on day one.</p>
+
+  <h2>Meet MNIST: 70,000 real handwritten digits</h2>
+  <p><strong>MNIST</strong> is the classic dataset every ML engineer trains on first: 70,000 grayscale images of handwritten digits 0–9, each 28×28 pixels, split into <strong>60,000 training images</strong> and <strong>10,000 test images</strong> (<a href="https://en.wikipedia.org/wiki/MNIST_database">Wikipedia</a>). The handwriting is real — collected by NIST from US Census Bureau employees and high-school students, then normalized into those neat 28×28 boxes. The split matters: the network learns from the 60,000, and we grade it on the 10,000 it has never seen. Good marks there mean it actually learned to read, not just memorized.</p>
+
+  <h2>The leap from XOR: 784 in, 10 out</h2>
+  <p>Your net from lessons 10–11 had 2 inputs and 1 output. Reading digits needs the same machine, just wider at both ends:</p>
+  <p><strong>Input — 784 neurons.</strong> A 28×28 image is a grid of 784 pixel brightnesses (28×28&nbsp;=&nbsp;784). Lesson 3's move pays off: unroll the grid row by row into one long vector — a plain list of 784 numbers, each pixel scaled to 0…1. The network never knows it was a picture. This unrolling is called <strong>flattening</strong>, and PyTorch has a layer for it: <code>nn.Flatten</code>.</p>
+  <p><strong>Output — 10 neurons, one per digit.</strong> Each output neuron produces a raw score: "how much does this look like a 0… a 1… a 9?" These raw, unsquashed scores are called <strong>logits</strong>. The verdict rule is one word: <strong>the biggest score wins</strong>.</p>
+  <p>Spelled out, the whole pipeline is four steps:</p>
+  <div class="formula">
+    1. flatten:&nbsp; 28×28 grid → x = (x₁, x₂, …, x₇₈₄)<br>
+    2. hidden layer:&nbsp; h = ReLU(W₁·x + b₁) &nbsp;→ 128 activations<br>
+    3. scores:&nbsp; s = W₂·h + b₂ &nbsp;→ 10 logits<br>
+    4. verdict:&nbsp; answer = argmax(s) &nbsp;→ index of the biggest score
+  </div>
+  <p>Symbol by symbol: <code>x</code> is the 784 pixels. <code>W₁</code> is the first weight grid — 128 neurons × 784 inputs = 100,352 weights — and <code>b₁</code> is its 128 biases. <code>ReLU</code> is lesson 5 paying off: the kink that keeps stacked layers from collapsing into one. <code>W₂, b₂</code> map those 128 activations to 10 scores (1,290 more parameters). <code>argmax</code> just means "index of the largest entry" — Swift's <code>scores.firstIndex(of: scores.max()!)</code>. Total: <strong>101,770</strong> learnable knobs, every one trained by the same gradient-descent loop from lessons 7–9. The compact, professional form is one line:</p>
+  <div class="formula" style="text-align:center; font-size:1.2rem">
+    ŷ = argmax( W₂ · ReLU(W₁·x + b₁) + b₂ )
+  </div>
+
+  <h2>Feel it: from pixels to a verdict</h2>
+  <p>Hover (or tap) a digit and watch it flow through the net:</p>
+  <div class="widget">
+    <div class="glyphs">
+      <div class="glyph" data-d="0" title="0"><svg viewBox="0 0 28 28" fill="none" stroke="#1a1a1a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5 C8.5 5 7 10 7 14 C7 19 9 23 14 23 C19 23 21 19 21 14 C21 9 19.5 5 14 5 Z"/></svg></div>
+      <div class="glyph" data-d="1" title="1"><svg viewBox="0 0 28 28" fill="none" stroke="#1a1a1a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 9 L15 5 L15 23"/></svg></div>
+      <div class="glyph" data-d="2" title="2"><svg viewBox="0 0 28 28" fill="none" stroke="#1a1a1a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 9 C9 4.5 19 4 19 9 C19 14 9.5 16 8.5 22 L20 22"/></svg></div>
+      <div class="glyph" data-d="3" title="3"><svg viewBox="0 0 28 28" fill="none" stroke="#1a1a1a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7 C13 4 19 5 19 9 C19 12.5 14 13.5 13 13.5 C14.5 13.5 20 14.5 20 18 C20 22.5 12 24 9 21"/></svg></div>
+      <div class="glyph" data-d="4" title="4"><svg viewBox="0 0 28 28" fill="none" stroke="#1a1a1a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M16 5 L8 17 L20 17 M16 11 L16 23"/></svg></div>
+      <div class="glyph" data-d="5" title="5"><svg viewBox="0 0 28 28" fill="none" stroke="#1a1a1a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 5 L10 5 L9 13 C13 11 20 12 20 17 C20 22 12 24 9 21"/></svg></div>
+      <div class="glyph" data-d="7" title="7"><svg viewBox="0 0 28 28" fill="none" stroke="#1a1a1a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6 L20 6 L12 23 M11 14 L17 14"/></svg></div>
+      <div class="glyph" data-d="8" title="8"><svg viewBox="0 0 28 28" fill="none" stroke="#1a1a1a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 13 C9 13 8 9 9 7.5 C10.5 5 17.5 5 19 7.5 C20 9 19 13 14 13 C9 13 7.5 17 8.5 20 C10 23 18 23 19.5 20 C20.5 17 19 13 14 13 Z"/></svg></div>
+    </div>
+    <div class="pipe">
+      <span class="stage" id="st0">28×28 image</span><span class="parrow">→</span>
+      <span class="stage" id="st1">Flatten · 784</span><span class="parrow">→</span>
+      <span class="stage" id="st2">Linear+ReLU · 128</span><span class="parrow">→</span>
+      <span class="stage" id="st3">Linear · 10</span>
+    </div>
+    <div class="cells" id="cells"></div>
+    <div class="verdict" id="verdict">the 10 output neurons appear here — biggest score wins</div>
+  </div>
+  <p class="sidenote">Honesty note: this widget is a cartoon of the <em>data flow</em> — the bars are staged, no real network runs in this page. The real one, with all 101,770 trained weights, is the program below.</p>
+
+  <h2>The loss for classification: cross-entropy</h2>
+  <p>Lesson 6 measured "how wrong" with squared error and promised a better tool for classification. Here it is. First the network's 10 logits are converted into probabilities that sum to 1 (a step called <strong>softmax</strong> — bigger score, bigger share). Then <strong>cross-entropy loss</strong> looks at one single number: the probability the network gave to the <em>correct</em> digit, and takes its negative logarithm (<code>ln</code> is the natural logarithm — plain <code>log()</code> in both Swift and Python):</p>
+  <div class="formula" style="text-align:center; font-size:1.2rem">
+    loss = −ln( p<sub>correct digit</sub> )
+  </div>
+  <p>Feel the shape of it: 90% sure and right → loss 0.105, tiny. A coin-flip 50% → 0.693. Only 10% on the right answer → 2.303, and as that probability heads toward zero the loss blows up toward infinity. Confident wrongness gets punished hardest — exactly the pressure that drives the weights toward reading digits. In PyTorch this whole story is one object, <code>nn.CrossEntropyLoss</code>, which takes the raw logits directly and does the softmax internally (<a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html">PyTorch docs</a>: "the input is expected to contain the unnormalized logits for each class").</p>
+
+  <h2>The complete program</h2>
+  <p>Everything below is lesson 11's PyTorch skeleton with exactly three changes: real data instead of XOR, 784→128→10 instead of 2→2→1, and cross-entropy instead of squared error. Python only — PyTorch is a Python library, there is no Swift build of it. The structure follows the official <a href="https://pytorch.org/tutorials/beginner/basics/quickstart_tutorial.html">PyTorch Quickstart</a>; the dataset call is <a href="https://docs.pytorch.org/vision/stable/generated/torchvision.datasets.MNIST.html">torchvision's MNIST</a>, and <a href="https://docs.pytorch.org/vision/stable/generated/torchvision.transforms.ToTensor.html"><code>ToTensor()</code></a> converts each image from 0–255 pixel bytes to floats scaled 0…1 (shape 1×28×28 — the unrolling to 784 is <code>nn.Flatten</code>'s job, inside the model).</p>
+
+  <div class="tabs">
+    <button class="tab active" data-t="py">Python (PyTorch)</button>
+  </div>
+
+  <pre class="codeblock" data-lang="py"><code>import torch
+from torch import nn
+from torch.utils.data import DataLoader
+from torchvision import datasets
+from torchvision.transforms import ToTensor
+
+# 1. Data: 60,000 training digits + 10,000 test digits, 28x28 each
+train_data = datasets.MNIST(root="data", train=True,  download=True, transform=ToTensor())
+test_data  = datasets.MNIST(root="data", train=False, download=True, transform=ToTensor())
+
+train_loader = DataLoader(train_data, batch_size=64, shuffle=True)
+test_loader  = DataLoader(test_data,  batch_size=64)
+
+# 2. The network: 784 -> 128 -> 10
+model = nn.Sequential(
+    nn.Flatten(),         # 28x28 grid -> vector of 784 (lesson 3)
+    nn.Linear(784, 128),  # weights + biases (lessons 3-4)
+    nn.ReLU(),            # the kink that lets layers matter (lesson 5)
+    nn.Linear(128, 10),   # 10 scores, one per digit
+)
+
+loss_fn   = nn.CrossEntropyLoss()                       # classification loss (lesson 6)
+optimizer = torch.optim.SGD(model.parameters(), lr=0.1) # gradient descent (lesson 7)
+
+# 3. Train: the loop from lesson 9, run by PyTorch (lesson 11)
+for epoch in range(3):
+    model.train()
+    for X, y in train_loader:
+        loss = loss_fn(model(X), y)   # forward pass + how wrong?
+        optimizer.zero_grad()
+        loss.backward()               # backpropagation (lesson 8)
+        optimizer.step()              # nudge all 101,770 knobs
+    print(f"epoch {epoch + 1}: last batch loss {loss.item():.3f}")
+
+# 4. Test on the 10,000 digits the network has never seen
+model.eval()
+correct = 0
+with torch.no_grad():
+    for X, y in test_loader:
+        pred = model(X)                                # 10 scores per image
+        correct += (pred.argmax(1) == y).sum().item()  # biggest score wins
+print(f"test accuracy: {correct / len(test_data):.1%}")</code></pre>
+
+  <p class="sidenote">Reading guide: <code>DataLoader</code> serves the data in mini-batches of 64, reshuffling each epoch (one epoch = one full pass over all 60,000 images, lesson 9). <code>argmax(1)</code> picks the winning score per image; comparing with the true labels <code>y</code> and summing counts the hits. Note what the loop does <em>not</em> contain: no derivative code anywhere — <code>loss.backward()</code> is lesson 8, done for you.</p>
+
+  <h2>Run it in Colab — three steps</h2>
+  <p>① Open <a href="https://colab.research.google.com">colab.research.google.com</a> and click <strong>New notebook</strong> (torch and torchvision are preinstalled — nothing touches your Mac). ② Paste the program into the empty cell. ③ Press <strong>Runtime → Run all</strong>. The first run downloads MNIST into the notebook (a few seconds), then trains: three epochs take a couple of minutes on the free CPU runtime.</p>
+  <p>Expect a test accuracy of <strong>roughly 97%</strong> — runs vary because the weights start random, but this ballpark is typical for a plain MLP like ours: <a href="https://en.wikipedia.org/wiki/MNIST_database">Wikipedia's MNIST results table</a> lists a plain two-layer 784–800–10 network at 1.6% error, i.e. 98.4%, so our smaller, briefly-trained 128-neuron version landing around 97 out of every 100 unseen handwritten digits is exactly where it should be. Stop and let that land: <em>you</em> just trained that.</p>
+
+  <h2>Check yourself</h2>
+  <p>No peeking back. Pull it from memory.</p>
+
+  <div class="quiz" id="quiz1">
+    <div class="q">1. Why does the input layer need exactly 784 neurons?</div>
+    <button class="opt" data-c="0">each 28×28 image contains around 784 separate pen strokes</button>
+    <button class="opt" data-c="1">each 28×28 image flattens into 784 separate pixel values</button>
+    <button class="opt" data-c="0">each 28×28 image requires about 784 separate training passes</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz2">
+    <div class="q">2. How does the finished network choose which digit to answer?</div>
+    <button class="opt" data-c="1">the output neuron with the biggest score wins</button>
+    <button class="opt" data-c="0">the output neuron with the smallest score wins</button>
+    <button class="opt" data-c="0">the hidden neuron with the biggest score wins</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz3">
+    <div class="q">3. When does cross-entropy loss blow up toward huge values?</div>
+    <button class="opt" data-c="0">when the correct digit gets probability near one</button>
+    <button class="opt" data-c="0">when the wrong digits all get probability zero</button>
+    <button class="opt" data-c="1">when the correct digit gets probability near zero</button>
+    <div class="fb"></div>
+  </div>
+
+  <h2>The whole course, one breath</h2>
+  <p>A neuron is multiply-add-squash (1); it draws a decision line (2); a layer of them is vectors and weights in bulk (3); layers stack into a forward pass (4); ReLU keeps depth meaningful (5); loss measures how wrong (6); gradients point downhill and we step (7); backprop computes every gradient through the layers (8); the training loop repeats the nudge (9); you built all of it raw in Python (10); PyTorch compressed it into a few lines (11); and today it read real handwriting (12). Click each lesson you could now explain to another iOS dev:</p>
+
+  <div class="widget" id="recap">
+    <button class="item">1 · The artificial neuron</button>
+    <button class="item">2 · The neuron as decision-maker</button>
+    <button class="item">3 · A layer of neurons (vectors)</button>
+    <button class="item">4 · Stacking layers — the forward pass</button>
+    <button class="item">5 · Activation functions (ReLU &amp; friends)</button>
+    <button class="item">6 · Loss — measuring "how wrong"</button>
+    <button class="item">7 · Gradient descent</button>
+    <button class="item">8 · Backpropagation</button>
+    <button class="item">9 · The training loop</button>
+    <button class="item">10 · Train a tiny network from scratch</button>
+    <button class="item">11 · The same net in PyTorch</button>
+    <button class="item">12 · Real data — handwritten digits</button>
+    <div class="tally" id="tally">You can explain 0 / 12</div>
+  </div>
+
+  <h2>Read this next</h2>
+  <p>Primary source: the official <a href="https://pytorch.org/tutorials/beginner/basics/quickstart_tutorial.html"><strong>PyTorch Quickstart tutorial</strong></a> — the same pipeline you just ran, written by the PyTorch team, plus the pieces we skipped (GPU device selection, saving and loading a trained model). You can now read every line of it.</p>
+  <p>And what comes after this finish line? The same neurons, weights and gradient descent you now own are the literal substrate of GPT-style models — and that's exactly where this book goes next: <strong>Phase 5 — Under the Hood of GPT</strong>, six lessons from tokens to the transformer to why ChatGPT chats and codes. Your foundation is complete; now we climb into the machine you actually came for.</p>
+
+  <footer>
+    <p><strong>Your win today:</strong> you trained your own neural network on 70,000 real handwritten digits and it reads unseen ones at ~97% — mission accomplished.</p>
+    <p>Previous: <a href="0011-the-same-net-in-pytorch.html">Lesson 11 — The Same Net in PyTorch</a> · Next: <a href="0013-text-becomes-numbers-tokens.html">Lesson 13 — Text Becomes Numbers: Tokens</a></p>
+  </footer>
+</div>
+
+<script>
+  const $=id=>document.getElementById(id);
+
+  // build the 10 output cells
+  const cells=$('cells');
+  for(let i=0;i<10;i++){
+    cells.insertAdjacentHTML('beforeend',
+      '<div class="cell" id="c'+i+'"><div class="cellbar"><div class="cellfill"></div></div>'+i+'</div>');
+  }
+  let timers=[];
+  function fire(d){
+    timers.forEach(clearTimeout); timers=[];
+    for(let i=0;i<4;i++){
+      const s=$('st'+i); s.classList.remove('lit');
+      timers.push(setTimeout(()=>s.classList.add('lit'),130*i));
+    }
+    timers.push(setTimeout(()=>{
+      for(let i=0;i<10;i++){
+        const h=(i===d)?1:(((d*5+i*7)%17)/17)*0.30+0.05;
+        const c=$('c'+i);
+        c.classList.toggle('win',i===d);
+        c.querySelector('.cellfill').style.height=(h*100)+'%';
+      }
+      $('verdict').textContent='output neuron '+d+' has the biggest score — the network answers “'+d+'”';
+    },520));
+  }
+  document.querySelectorAll('.glyph').forEach(g=>{
+    const go=()=>{
+      document.querySelectorAll('.glyph').forEach(x=>x.classList.toggle('sel',x===g));
+      fire(+g.dataset.d);
+    };
+    g.addEventListener('mouseenter',go);
+    g.addEventListener('click',go);
+  });
+
+  // course-recap checklist
+  const items=document.querySelectorAll('#recap .item');
+  items.forEach(it=>it.addEventListener('click',()=>{
+    it.classList.toggle('done');
+    const n=document.querySelectorAll('#recap .item.done').length;
+    $('tally').textContent = n===12
+      ? '12 / 12 — mission accomplished. You built the foundation, lesson by lesson.'
+      : 'You can explain '+n+' / 12';
+  }));
+
+  // tabs (single tab here, kept for consistency)
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      const t=tab.dataset.t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.t===t));
+      document.querySelectorAll('.codeblock').forEach(c=>c.hidden=(c.dataset.lang!==t));
+    });
+  });
+
+  // quiz
+  document.querySelectorAll('.quiz').forEach(q=>{
+    q.querySelectorAll('.opt').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        if(q.dataset.done) return;
+        q.dataset.done=1;
+        const correct=btn.dataset.c==='1';
+        btn.classList.add(correct?'correct':'wrong');
+        if(!correct){
+          q.querySelector('.opt[data-c="1"]').classList.add('correct');
+        }
+        q.querySelector('.fb').textContent = correct ? 'Correct — locked in.' : 'Not quite — the green one is right.';
+      });
+    });
+  });
+</script>
+<script>
+(function(){
+  var b=document.getElementById('themeToggle');
+  function sync(){b.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀':'☾';}
+  b.addEventListener('click',function(){
+    var next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{localStorage.setItem('book-theme',next);}catch(e){}
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

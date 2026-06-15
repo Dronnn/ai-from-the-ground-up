@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Foundations — Formulas Cheat Sheet</title>
+<style>
+  :root{ --ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8; --accent:#7a1f1f; --soft:#f3f0e7; }
+  *{box-sizing:border-box}
+  body{background:var(--paper); color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.45; margin:0; padding:2.2rem 1.2rem 3rem; font-size:.95rem}
+  .wrap{max-width:720px; margin:0 auto}
+  .kicker{font-variant:small-caps; letter-spacing:.08em; color:var(--accent); font-size:.9rem}
+  h1{font-size:1.7rem; margin:.1rem 0 .2rem; font-weight:600}
+  .sub{color:#5a564c; margin:0 0 1.4rem}
+  h2{font-size:.95rem; font-variant:small-caps; letter-spacing:.06em; color:var(--accent);
+    margin:1.5rem 0 .4rem; border-bottom:1px solid var(--rule); padding-bottom:.2rem}
+  .f{background:var(--soft); border-left:3px solid var(--accent); padding:.55rem .9rem;
+    margin:.5rem 0; font-size:1.02rem;
+    font-family:"Latin Modern Math","Cambria Math",Georgia,serif}
+  .note{font-size:.86rem; color:#5a564c; margin:.15rem 0 .6rem}
+  code{font-family:"SF Mono",Menlo,Consolas,monospace; font-size:.85em;
+    background:var(--soft); padding:.08em .3em; border-radius:3px}
+  table{border-collapse:collapse; width:100%; margin:.5rem 0; font-size:.88rem}
+  th,td{border:1px solid var(--rule); padding:.35rem .55rem; text-align:left}
+  th{background:var(--soft); font-variant:small-caps; letter-spacing:.04em; font-weight:600}
+  a{color:var(--accent)}
+  footer{margin-top:2rem; border-top:1px solid var(--rule); padding-top:.8rem; font-size:.85rem; color:#5a564c}
+  @media print{ body{padding:.5cm; font-size:9.5pt} .f{break-inside:avoid} h2{margin-top:.9rem} }
+
+  /* dark theme: warm sepia night */
+  html[data-theme="dark"]{color-scheme:dark;
+    --ink:#e8e3d6; --paper:#201d18; --rule:#3d382f; --accent:#c97b6f;
+    --soft:#2a2620; --good:#8fbf9c; --bad:#d98a80}
+  html[data-theme="dark"] .lead{color:#cfc9bb}
+  html[data-theme="dark"] .sidenote, html[data-theme="dark"] footer,
+  html[data-theme="dark"] .phase-sub, html[data-theme="dark"] .desc,
+  html[data-theme="dark"] .sub, html[data-theme="dark"] .note{color:#a89f8d}
+  html[data-theme="dark"] [style*="#5a564c"]{color:#a89f8d!important}
+  html[data-theme="dark"] .quiz{background:#26221c}
+  html[data-theme="dark"] .opt.correct{background:#2a3a2e}
+  html[data-theme="dark"] .opt.wrong{background:#3d2a27}
+  html[data-theme="dark"] .tab{color:#9a9183}
+  /* widgets stay light: printed-figure look, keeps all verified canvas/SVG colors intact */
+  html[data-theme="dark"] .widget{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+    background:#fff; color:#1a1a1a; color-scheme:light}
+  .themetoggle{position:fixed; top:14px; right:14px; z-index:50; width:38px; height:38px;
+    border-radius:50%; border:1px solid var(--rule); background:var(--soft); color:var(--ink);
+    font-size:1rem; cursor:pointer; line-height:1; font-family:inherit}
+  .themetoggle:hover{border-color:var(--accent)}
+  @media print{.themetoggle{display:none}
+    html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+      --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a}}
+</style>
+<script>(function(){var t=localStorage.getItem('book-theme');
+if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+document.documentElement.setAttribute('data-theme',t);})()</script>
+</head>
+<body>
+<button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
+<div class="wrap">
+  <div class="kicker">AI Foundations · Reference</div>
+  <h1>Formulas Cheat Sheet</h1>
+  <p class="sub">Every formula of the course on one printable page. Numbers in examples are real computed values. Lesson numbers in brackets.</p>
+
+  <h2>The neuron — three forms [L1]</h2>
+  <div class="f">z = w₁·x₁ + w₂·x₂ + … + wₙ·xₙ + b &nbsp;&nbsp;→&nbsp;&nbsp; a = σ(z)</div>
+  <div class="f">z = ( Σᵢ wᵢ·xᵢ ) + b &nbsp;&nbsp;·&nbsp;&nbsp; Σ = "loop and add"</div>
+  <div class="f">a = σ( <b>w</b>·<b>x</b> + b ) &nbsp;&nbsp;·&nbsp;&nbsp; dot product = multiply pairwise, add up</div>
+
+  <h2>Sigmoid [L1, L5, L8]</h2>
+  <div class="f">σ(z) = 1 ⁄ (1 + e⁻ᶻ) &nbsp;&nbsp;·&nbsp;&nbsp; range (0, 1) · σ(0) = 0.5 · σ(1) ≈ 0.7311 · σ(2) ≈ 0.8808</div>
+  <div class="f">σ′(z) = σ(z)·(1 − σ(z)) &nbsp;&nbsp;— its own derivative, used by backprop</div>
+
+  <h2>The decision boundary [L2]</h2>
+  <div class="f"><b>w</b>·<b>x</b> + b = 0 &nbsp;&nbsp;·&nbsp;&nbsp; solved for x₂:&nbsp; x₂ = −(w₁/w₂)·x₁ − b/w₂</div>
+  <p class="note">Weights set the line's direction; bias slides it. Fires (a &gt; 0.5) exactly when z &gt; 0. Hand-built AND gate: w = (10, 10), b = −15. Same weights, b = −5 → OR.</p>
+
+  <h2>A layer [L3]</h2>
+  <div class="f"><b>a</b> = σ( W·<b>x</b> + <b>b</b> ) &nbsp;&nbsp;·&nbsp;&nbsp; one row of W per neuron · σ applied element-wise</div>
+  <p class="note">Shape rule: (n×m matrix)·(vector of m) → vector of n. Output entry j = dot product of row j with x = one neuron.</p>
+
+  <h2>The forward pass [L4]</h2>
+  <div class="f"><b>a</b>⁽ˡ⁾ = σ( W⁽ˡ⁾·<b>a</b>⁽ˡ⁻¹⁾ + <b>b</b>⁽ˡ⁾ ) &nbsp;&nbsp;·&nbsp;&nbsp; a⁽⁰⁾ = x &nbsp;·&nbsp; superscript = layer label, not a power</div>
+  <p class="note">Hand-built XOR (2→2→1): hidden h₁ = OR (20, 20, −10), h₂ = NAND (−20, −20, +30), output = AND (20, 20, −30).</p>
+
+  <h2>Activation functions [L5]</h2>
+  <div class="f">sigmoid → (0,1) &nbsp;·&nbsp; tanh → (−1,1) &nbsp;·&nbsp; ReLU(z) = max(0, z)</div>
+  <p class="note">Without a nonlinearity, stacked layers collapse to one linear map: W₂(W₁x) = (W₂W₁)x. ReLU is the modern default for hidden layers; sigmoid survives at outputs for probabilities.</p>
+
+  <h2>Loss — MSE [L6]</h2>
+  <div class="f">MSE = (1 ⁄ n) · Σᵢ (ŷᵢ − yᵢ)² &nbsp;&nbsp;·&nbsp;&nbsp; ŷ "y-hat" = prediction, y = target</div>
+  <p class="note">Squaring kills the sign and magnifies big misses. Floor is 0, hit when every ŷ = y. Nielsen writes C = (1/2n)Σ‖y−a‖² — the extra ½ is cosmetic (cancels the derivative's 2). Loss is a function of the weights; training = minimizing it.</p>
+
+  <h2>Gradient descent [L7]</h2>
+  <div class="f">w ← w − η · ∂L/∂w &nbsp;&nbsp;·&nbsp;&nbsp; vector form: <b>w</b> ← <b>w</b> − η·∇L</div>
+  <p class="note">∂L/∂w = slope of the loss at the current w. η (eta) = learning rate: too small crawls, too big diverges. The derivative of (w−3)² is 2(w−3).</p>
+
+  <h2>Backpropagation [L8, L10]</h2>
+  <div class="f">chain rule:&nbsp; dL/dw = dL/da · da/dz · dz/dw</div>
+  <div class="f">one sigmoid neuron + squared error:&nbsp; dL/dw = 2(a − y) · a(1 − a) · x</div>
+  <div class="f">two layers (2-2-1):&nbsp; δ_out = 2(out−y)·out(1−out) &nbsp;·&nbsp; δ_h = δ_out·v · h(1−h)</div>
+  <p class="note">Every weight's gradient = its δ × the activation entering it; every bias gradient = the bare δ. These are Nielsen's BP1–BP4, written small.</p>
+
+  <h2>The training loop [L9]</h2>
+  <div class="f" style="font-family:'SF Mono',Menlo,monospace; font-size:.85rem; white-space:pre">for each epoch:            # one full pass over the data
+    forward    (L4)
+    loss       (L6)
+    backward   (L8)
+    update:  w -= η·grad   (L7)</div>
+  <p class="note">Batch GD = one update from all examples' summed gradients; SGD = update per (mini-batch of) example(s).</p>
+
+  <h2>PyTorch ↔ from scratch [L11]</h2>
+  <table>
+    <tr><th>you wrote</th><th>PyTorch</th></tr>
+    <tr><td>forward pass through the layers</td><td><code>pred = model(X)</code></td></tr>
+    <tr><td>mean of (ŷ−y)²</td><td><code>nn.MSELoss()</code></td></tr>
+    <tr><td>reset gradient accumulators</td><td><code>optimizer.zero_grad()</code></td></tr>
+    <tr><td>the whole backward pass</td><td><code>loss.backward()</code></td></tr>
+    <tr><td><code>w -= lr*grad</code> everywhere</td><td><code>optimizer.step()</code></td></tr>
+  </table>
+
+  <h2>Language models [L13–L14]</h2>
+  <div class="f">tokenize: text → tokens → IDs &nbsp;·&nbsp; BPE: keep merging the most frequent adjacent pair</div>
+  <div class="f">language model: P(next token | context) &nbsp;·&nbsp; generate: predict → sample → append → repeat</div>
+  <p class="note">Bigram: P(b|a) = count(a→b) ⁄ count(a→anything). Greedy (always argmax) repeats one answer forever; sampling buys variety.</p>
+
+  <h2>Embeddings [L15]</h2>
+  <div class="f">token ID → row of the embedding matrix (learned like any weight)</div>
+  <div class="f">cos(u, v) = (u·v) ⁄ (‖u‖·‖v‖) &nbsp;·&nbsp; +1 same direction · 0 unrelated · −1 opposite</div>
+  <p class="note">Similar contexts → nearby vectors; directions = concepts (king − man + woman ≈ queen).</p>
+
+  <h2>Attention [L16]</h2>
+  <div class="f">Attention(Q, K, V) = softmax( QKᵀ ⁄ √d<sub>k</sub> ) · V</div>
+  <div class="f">softmax(x)ᵢ = eˣⁱ ⁄ Σⱼ eˣʲ &nbsp;— scores → weights that sum to 1</div>
+  <p class="note">q = what I seek · k = what I am · v = what I give. Causal mask: attend only to self + earlier tokens. New vector = weighted sum of values. Heads = several attentions in parallel.</p>
+
+  <h2>The transformer [L17]</h2>
+  <div class="f">tokens → embedding + position → N × [x ← x + attention(x); x ← x + MLP(x)] → logits → softmax → sample</div>
+  <p class="note">GPT-2: 124M–1.5B params, 48 layers. GPT-3: 175B params, 96 layers, 96 heads, 12,288-D embeddings, 2,048-token context. Decoder-only = causally masked, generates left to right.</p>
+
+  <h2>Training GPT [L18]</h2>
+  <div class="f">pretraining loss = −ln( p<sub>true next token</sub> ) — cross-entropy on the next token, at internet scale</div>
+  <div class="f">temperature: probabilities = softmax( logits ⁄ T ) &nbsp;·&nbsp; T→0 greedy · big T adventurous</div>
+  <p class="note">Pipeline: pretraining (next-token on huge corpora) → supervised finetuning (dialogue examples) → RLHF (humans rank, reward model scores, weights nudge). Hallucination = fluent sampling past the edge of the weights' knowledge — mechanism, not bug.</p>
+
+  <h2>Worked numbers to sanity-check yourself</h2>
+  <p class="note">σ(1.0) = 0.7310585786300049 [L1] · AND(1,1): z = +5, a = 0.9933 [L2] · layer [0.5,−1,2] → [0.881, 0.060] [L3] · XOR table: 0.00005 / 0.99995 / 0.99995 / 0.00005 [L4] · MSE of (0.9, 0.2, 0.4) vs (1, 0, 1) = 0.41/3 ≈ 0.1367 [L6] · descent from w=0, η=0.1 on (w−3)²: w₁ = 0.6, w₈ = 2.4967 [L7] · trained AND: w₁=w₂=5.14, b=−7.81 [L9] · trained XOR: 0.020 / 0.977 / 0.981 / 0.018 [L10] · "to be" → [6, 4, 0, 1, 2] [L13] · P(end|'a') = 0.68 in the names model [L14] · king − man + woman = [−1, 2] = queen, cosine 1.000 [L15] · cat attends 0.446 / 0.446 / 0.108 [L16] · logits 4.0/2.5/2.0/0.5/0.1 → softmax 0.710/0.158/0.096/0.021/0.014 [L17] · at T = 0.5 the favorite jumps to 0.935 [L18]. All verified by running the lessons' own code.</p>
+
+  <footer>
+    <p><a href="../index.html">Course index</a> · <a href="GLOSSARY.md">Glossary</a> · <a href="../ROADMAP.md">Roadmap</a> — print me and keep me next to the keyboard.</p>
+  </footer>
+</div>
+<script>
+(function(){
+  var b=document.getElementById('themeToggle');
+  function sync(){b.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀':'☾';}
+  b.addEventListener('click',function(){
+    var next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{localStorage.setItem('book-theme',next);}catch(e){}
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

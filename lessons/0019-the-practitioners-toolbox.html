@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 19 — The Practitioner's Toolbox</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.55; margin:0; padding:3rem 1.2rem 5rem;
+  }
+  .wrap{max-width:680px; margin:0 auto}
+  .kicker{font-variant:small-caps; letter-spacing:.08em; color:var(--accent);
+    font-size:.95rem; margin-bottom:.2rem}
+  h1{font-size:2.1rem; line-height:1.15; margin:.1rem 0 1.2rem; font-weight:600}
+  h2{font-size:1.3rem; margin:2.4rem 0 .6rem; font-weight:600}
+  h3{margin:1.5rem 0 .3rem; font-size:1.05rem}
+  p{margin:.7rem 0}
+  .lead{font-size:1.12rem; color:#33312c}
+  .formula{
+    background:var(--soft); border-left:3px solid var(--accent);
+    padding:.9rem 1.1rem; margin:1.2rem 0; font-size:1.05rem;
+    font-family:"Latin Modern Math","Cambria Math",Georgia,serif; overflow-x:auto;
+  }
+  code{font-family:"SF Mono",Menlo,Consolas,monospace; font-size:.92em;
+    background:var(--soft); padding:.1em .35em; border-radius:3px}
+  a{color:var(--accent)}
+  .sidenote{font-size:.9rem; color:#5a564c; border-top:1px solid var(--rule);
+    border-bottom:1px solid var(--rule); padding:.7rem 0; margin:1.4rem 0}
+  table.spec{border-collapse:collapse; width:100%; margin:1rem 0; font-size:.92rem}
+  .spec th{font-variant:small-caps; letter-spacing:.05em; font-weight:600; color:#444;
+    text-align:left; padding:.4rem .6rem; border-bottom:2px solid var(--rule)}
+  .spec td{border-top:1px solid var(--rule); padding:.5rem .6rem}
+
+  /* interactive widget */
+  .widget{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .goalbtn{display:block; width:100%; text-align:left; border:1px solid var(--rule);
+    background:var(--paper); padding:.6rem .8rem; margin:.4rem 0; border-radius:6px;
+    cursor:pointer; font:inherit}
+  .goalbtn:hover{background:var(--soft)}
+  .goalbtn.sel{border-color:var(--accent); background:#fbf4ee}
+  .reco{margin-top:1rem; padding:1rem 1.1rem; border:1px solid var(--good);
+    border-radius:8px; background:#f4faf5; font-size:.95rem; display:none}
+  .reco.show{display:block}
+  .reco h4{margin:.1rem 0 .4rem; font-size:1rem}
+  .reco code{background:#e8efe9}
+
+  /* code */
+  .tabs{display:flex; gap:.4rem; margin:1.2rem 0 0}
+  .tab{font:inherit; font-size:.9rem; font-variant:small-caps; letter-spacing:.05em;
+    border:1px solid var(--rule); border-bottom:none; background:var(--soft);
+    padding:.45rem 1rem; border-radius:6px 6px 0 0; cursor:pointer; color:#666}
+  .tab.active{background:#272521; color:#f3f0e7}
+  .codeblock{margin:0 0 1rem; background:#272521; color:#f3f0e7; border-radius:0 6px 6px 6px;
+    padding:1rem 1.1rem; overflow-x:auto}
+  .codeblock code{background:none; color:inherit; font-size:.86rem; line-height:1.5;
+    font-family:"SF Mono",Menlo,Consolas,monospace; white-space:pre}
+
+  /* quiz */
+  .quiz{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .q{font-weight:600; margin-bottom:.6rem}
+  .opt{display:block; width:100%; text-align:left; border:1px solid var(--rule);
+    background:var(--paper); padding:.6rem .8rem; margin:.4rem 0; border-radius:6px;
+    cursor:pointer; font:inherit}
+  .opt:hover{background:var(--soft)}
+  .opt.correct{border-color:var(--good); background:#eef7f0}
+  .opt.wrong{border-color:var(--bad); background:#f9eeee}
+  .fb{margin-top:.5rem; font-size:.95rem; min-height:1.2em}
+  footer{margin-top:3rem; border-top:1px solid var(--rule); padding-top:1rem;
+    font-size:.92rem; color:#5a564c}
+
+  /* dark theme: warm sepia night */
+  html[data-theme="dark"]{color-scheme:dark;
+    --ink:#e8e3d6; --paper:#201d18; --rule:#3d382f; --accent:#c97b6f;
+    --soft:#2a2620; --good:#8fbf9c; --bad:#d98a80}
+  html[data-theme="dark"] .lead{color:#cfc9bb}
+  html[data-theme="dark"] .sidenote, html[data-theme="dark"] footer{color:#a89f8d}
+  html[data-theme="dark"] [style*="#5a564c"]{color:#a89f8d!important}
+  html[data-theme="dark"] .quiz{background:#26221c}
+  html[data-theme="dark"] .opt.correct{background:#2a3a2e}
+  html[data-theme="dark"] .opt.wrong{background:#3d2a27}
+  html[data-theme="dark"] .tab{color:#9a9183}
+  html[data-theme="dark"] .wrap > table.spec th{color:#b3aa99}
+  html[data-theme="dark"] .widget{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+    background:#fff; color:#1a1a1a; color-scheme:light}
+  .themetoggle{position:fixed; top:14px; right:14px; z-index:50; width:38px; height:38px;
+    border-radius:50%; border:1px solid var(--rule); background:var(--soft); color:var(--ink);
+    font-size:1rem; cursor:pointer; line-height:1; font-family:inherit}
+  .themetoggle:hover{border-color:var(--accent)}
+  @media print{.themetoggle{display:none}
+    html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+      --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a}}
+</style>
+<script>(function(){var t=localStorage.getItem('book-theme');
+if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+document.documentElement.setAttribute('data-theme',t);})()</script>
+</head>
+<body>
+<button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
+<div class="wrap">
+  <div class="kicker">AI Foundations · Lesson 19 · Phase 5 — Under the hood of GPT</div>
+  <h1>The Practitioner's Toolbox</h1>
+  <p class="lead">Eighteen lessons taught you the machine. This one hands you the workshop: which languages the field actually speaks, what a notebook is, why every error message mentions CUDA, where the world keeps its models, and exactly what to install for each kind of work — including the setup that keeps your Mac completely clean. Nothing here is theory; it's the map you need the day you do any of this for real.</p>
+
+  <h2>The languages: why Python — and where Swift fits</h2>
+  <p>Python didn't win because it's a great language; it won because of <em>gravity</em>: every library, every paper's code, every tutorial landed there, and each arrival made the next one more inevitable. But here is the part most beginners never learn: <strong>Python is the steering wheel, not the engine</strong>. PyTorch is written in <em>Python, C++, and CUDA</em> (<a href="https://en.wikipedia.org/wiki/PyTorch">Wikipedia</a>) — the Python you type is a thin, friendly control panel over compiled C++/GPU code doing lesson 3's matrix multiplications at ferocious speed. That's why "Python is slow" doesn't matter here: the heavy lifting never runs in Python.</p>
+  <p>And your home language? Honest status report for a Swift developer: <strong>training and research speak Python</strong> — that won't change soon, and it's why this book taught every concept in both languages (if the Python side still reads like fog, the <a href="../reference/python-for-swift-developers.html">Python-for-Swift-developers reference</a> covers 100% of the book's Python through Swift eyes). But on the <em>shipping</em> side, Swift is a first-class citizen: <strong>Core ML</strong> runs trained models inside your iOS/macOS apps, and Apple's own research framework <strong>MLX</strong> — "an array framework for machine learning on Apple silicon, brought to you by Apple machine learning research" — ships "NumPy-inspired Python APIs with C++, C, and <em>Swift</em> equivalents" (<a href="https://github.com/ml-explore/mlx">MLX repo</a>). The realistic division of labor: explore and train in Python, ship to users in Swift.</p>
+
+  <h2>The notebook: the field's favorite workbench</h2>
+  <p>ML people rarely work in Xcode-style projects; they work in <strong>notebooks</strong>. A <a href="https://jupyter.org">Jupyter Notebook</a> is "the original web application for creating and sharing computational documents" — a single document holding "code, narrative text, equations, and rich output", run cell by cell, with results (numbers, plots, tables) appearing inline. It fits ML's rhythm perfectly: load data, peek at it, tweak, re-run one cell — no rebuild, no relaunch. And now the magic door this book kept using can be named precisely: <strong>Google Colab</strong> is "a hosted Jupyter Notebook service that requires no setup to use and provides free of charge access to computing resources, including GPUs and TPUs" (<a href="https://research.google.com/colaboratory/faq.html">Colab FAQ</a>). Someone else's Jupyter, someone else's GPU, your browser.</p>
+
+  <h2>The hardware layer: why "GPU" and "CUDA" are everywhere</h2>
+  <p>Lesson 17 said it in passing; now make it explicit. Training and inference are overwhelmingly <strong>matrix multiplications</strong> (lesson 3), and a GPU is a machine for doing thousands of small multiply-adds simultaneously. The software that lets ML frameworks drive Nvidia GPUs is <strong>CUDA</strong> — "a proprietary parallel computing platform and application programming interface developed by… Nvidia" that runs <em>only</em> on Nvidia hardware (<a href="https://en.wikipedia.org/wiki/CUDA">Wikipedia</a>). That single proprietary fact explains half the industry's shape: why Nvidia sells GPUs faster than it can make them, and why "do you have CUDA?" is the first question in every ML setup guide.</p>
+  <p>No Nvidia card in your Mac — but you're not locked out: PyTorch has an <strong>MPS backend</strong> ("GPU-accelerated PyTorch training on Mac" using Apple's <a href="https://docs.pytorch.org/docs/stable/notes/mps.html">Metal Performance Shaders</a>) that runs on your Apple-Silicon GPU, and MLX above is built natively for it. Toy and small-model work runs happily on a Mac; serious training rents Nvidia time in the cloud.</p>
+
+  <h2>The model shelf: Hugging Face, Ollama, llama.cpp</h2>
+  <p>You will not train GPT-5 — but you don't have to, because the world shares. The <a href="https://huggingface.co/docs/hub/index"><strong>Hugging Face Hub</strong></a> is the field's GitHub: it "hosts over 2M models, 1.5M datasets, and 1.5M AI apps", openly downloadable, with the <code>transformers</code> Python library to load them in a few lines. For running open LLMs on your own machine, two names: <a href="https://github.com/ggml-org/llama.cpp"><strong>llama.cpp</strong></a>, whose stated goal is "to enable LLM inference with minimal setup and state-of-the-art performance on a wide range of hardware — locally and in the cloud" (with Apple Silicon as a first-class target via Metal), and <a href="https://ollama.com"><strong>Ollama</strong></a>, the friendly one-command wrapper around that idea — "the easiest way to build with open models", install one app and pull a model like pulling a Docker image. Everything you learned applies directly: what these tools download is a file of <em>weights</em> (lessons 9–10's learned numbers, billions of them), and what they run is lesson 17's forward pass.</p>
+
+  <h2>The four approaches — what people actually do</h2>
+  <table class="spec">
+    <tr><th>approach</th><th>what it means</th><th>realistic on…</th></tr>
+    <tr><td><strong>1. Call an API</strong></td><td>someone else's trained model over the network (OpenAI, Anthropic…)</td><td>any machine; costs per token</td></tr>
+    <tr><td><strong>2. Run open models</strong></td><td>download weights, run lesson 17's forward pass locally (Ollama / llama.cpp)</td><td>your Mac, today</td></tr>
+    <tr><td><strong>3. Finetune</strong></td><td>lesson 18's second act on your own data, on top of someone's pretrained weights</td><td>small models: one good GPU / Colab; bigger: rented cloud GPUs</td></tr>
+    <tr><td><strong>4. Pretrain from scratch</strong></td><td>lessons 9–18 at full scale</td><td>toy scale: you did it in lesson 10! real scale: data centers, millions of dollars</td></tr>
+  </table>
+  <p>Most practitioners live in rows 1–3. Knowing rows 1–4 are <em>the same machinery at different scales</em> — that's what eighteen lessons bought you.</p>
+
+  <h2>What to install: the three setups</h2>
+  <p>Terminal commands this time, not Swift/Python. Pick your tab:</p>
+
+  <div class="tabs">
+    <button class="tab active" data-t="colab">0 · zero-install</button>
+    <button class="tab" data-t="mac">1 · clean Mac</button>
+    <button class="tab" data-t="rig">2 · serious rig</button>
+  </div>
+
+  <pre class="codeblock" data-lang="colab"><code># Setup 0 — what this book used. Install: nothing.
+#
+#   1. open  colab.research.google.com
+#   2. File → New notebook
+#   3. paste code, press ⌘/Ctrl+Enter to run a cell
+#
+# torch is preinstalled; free GPU: Runtime → Change runtime type → GPU.
+# Perfect for: every lesson here, experiments, finetuning small models.</code></pre>
+
+  <pre class="codeblock" data-lang="mac" hidden><code># Setup 1 — local work that leaves the Mac spotless.
+# Everything lives in ONE folder via a virtual environment —
+# venv creates "lightweight virtual environments", each isolated,
+# with its own packages (docs.python.org). Nothing global. Ever.
+
+cd my-ml-project
+python3 -m venv .venv            # create the isolated environment
+source .venv/bin/activate        # enter it (prompt changes)
+pip install torch jupyter        # installs ONLY into .venv/
+jupyter notebook                 # your own local Colab, in the browser
+
+# leaving and cleaning up — total removal, no traces:
+deactivate
+rm -rf .venv</code></pre>
+
+  <pre class="codeblock" data-lang="rig" hidden><code># Setup 2 — when models outgrow the laptop. Two roads:
+#
+#   a) a box with an Nvidia GPU + CUDA drivers + the same
+#      venv/pip/torch routine as Setup 1 — torch then sees the GPU.
+#
+#   b) rent: cloud GPU notebooks/instances by the hour
+#      (Colab Pro and many providers). Same code, faster iron.
+#
+# Either way the software story doesn't change:
+# Python + venv + torch + notebooks. Only the hardware grows.</code></pre>
+
+  <p class="sidenote"><strong>The honest minimal kit</strong>, for the day someone asks what's needed to "do ML": <em>Python 3, venv, PyTorch, Jupyter</em> — four things, all free, all installable inside one disposable folder. Everything else (Hugging Face libraries, Ollama, experiment trackers) joins the same venv when a project actually needs it. Beware the opposite failure: installing twenty tools "to be ready" is how people avoid starting.</p>
+
+  <h2>Feel it: pick your path</h2>
+  <p>What do you want to do first? Click one — the card shows the exact stack for it.</p>
+
+  <div class="widget">
+    <button class="goalbtn" data-g="learn">Keep learning and experimenting with this book's code</button>
+    <button class="goalbtn" data-g="run">Run open LLMs on my own Mac, offline</button>
+    <button class="goalbtn" data-g="train">Train and finetune my own small models</button>
+    <button class="goalbtn" data-g="ship">Ship a model inside an iOS app</button>
+    <div class="reco" id="reco"></div>
+  </div>
+
+  <h2>Check yourself</h2>
+  <p>No peeking back. Pull it from memory.</p>
+
+  <div class="quiz" id="quiz1">
+    <div class="q">1. Why doesn't Python's slowness hurt model training?</div>
+    <button class="opt" data-c="1">the heavy math runs in compiled C++/CUDA engines underneath</button>
+    <button class="opt" data-c="0">the heavy math runs in small batches overnight instead</button>
+    <button class="opt" data-c="0">the heavy math runs in the browser cache directly</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz2">
+    <div class="q">2. What is Google Colab, precisely?</div>
+    <button class="opt" data-c="0">a cloud editor that converts Python into Swift</button>
+    <button class="opt" data-c="1">a hosted Jupyter notebook service with free GPUs</button>
+    <button class="opt" data-c="0">a package manager that installs PyTorch for everyone</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz3">
+    <div class="q">3. What does a virtual environment (venv) give you?</div>
+    <button class="opt" data-c="0">a faster Python compiled specially for one project</button>
+    <button class="opt" data-c="0">a shared Python where every project sees everything</button>
+    <button class="opt" data-c="1">an isolated Python with packages for one project</button>
+    <div class="fb"></div>
+  </div>
+
+  <h2>Read this next</h2>
+  <p>Primary source: the <a href="https://huggingface.co/docs/hub/index"><strong>Hugging Face Hub documentation</strong></a> — walk the shelves of the open-model world: models with their model cards (read a few — you now understand every word: parameters, context window, finetuned from…), datasets, and live demo Spaces. Then, when a real project calls, the <a href="https://docs.python.org/3/library/venv.html">venv docs</a> and <a href="https://jupyter.org">jupyter.org</a> are the canonical references for the local kit.</p>
+
+  <footer>
+    <p><strong>Your win today:</strong> you own the map of the workshop — Python as the steering wheel over C++/CUDA engines, notebooks as the workbench, GPUs as the reason, Hugging Face/Ollama as the shelves, venv as the clean-room — and you know exactly what to install for each of the four ways people work with models.</p>
+    <p>Previous: <a href="0018-how-gpt-is-trained.html">Lesson 18 — How GPT Is Trained</a> · Next: <a href="../ROADMAP.md">Course complete</a></p>
+  </footer>
+</div>
+
+<script>
+  const $=id=>document.getElementById(id);
+
+  // ---- path picker ----
+  const RECO={
+    learn:'<h4>Stack: Colab only</h4>Nothing to install. colab.research.google.com → new notebook → paste any lesson\'s Python. Free GPU when you reach the Karpathy capstone. Your Mac stays untouched.',
+    run:'<h4>Stack: Ollama (or llama.cpp)</h4>One app install; then one command pulls an open model and chats with it offline. What it downloads is a weights file — lesson 10\'s nine numbers, scaled to billions; what it runs is lesson 17\'s forward pass. Apple Silicon is a first-class citizen here.',
+    train:'<h4>Stack: venv + PyTorch + Jupyter (Setup 1) — or stay in Colab for free GPUs</h4><code>python3 -m venv .venv && source .venv/bin/activate && pip install torch jupyter</code> — everything in one disposable folder; PyTorch\'s MPS backend uses your Mac\'s GPU. For bigger runs, rent cloud GPUs (Setup 2).',
+    ship:'<h4>Stack: Core ML / MLX-Swift on the app side; Python on the training side</h4>Train or download the model in the Python world, convert/ship it with Core ML, or run it via MLX\'s Swift API. Your two languages finally meet — exactly why this book taught both.',
+  };
+  document.querySelectorAll('.goalbtn').forEach(b=>{
+    b.addEventListener('click',()=>{
+      document.querySelectorAll('.goalbtn').forEach(x=>x.classList.toggle('sel',x===b));
+      const r=$('reco'); r.innerHTML=RECO[b.dataset.g]; r.classList.add('show');
+    });
+  });
+</script>
+<script>
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      const t=tab.dataset.t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.t===t));
+      document.querySelectorAll('.codeblock[data-lang]').forEach(c=>c.hidden=(c.dataset.lang!==t));
+    });
+  });
+  document.querySelectorAll('.quiz').forEach(q=>{
+    q.querySelectorAll('.opt').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        if(q.dataset.done) return;
+        q.dataset.done=1;
+        const correct=btn.dataset.c==='1';
+        btn.classList.add(correct?'correct':'wrong');
+        if(!correct){
+          q.querySelector('.opt[data-c="1"]').classList.add('correct');
+        }
+        q.querySelector('.fb').textContent = correct ? 'Correct — locked in.' : 'Not quite — the green one is right.';
+      });
+    });
+  });
+</script>
+<script>
+(function(){
+  var b=document.getElementById('themeToggle');
+  function sync(){b.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀':'☾';}
+  b.addEventListener('click',function(){
+    var next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{localStorage.setItem('book-theme',next);}catch(e){}
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

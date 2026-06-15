@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 14 — Your First Language Model</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.55; margin:0; padding:3rem 1.2rem 5rem;
+  }
+  .wrap{max-width:680px; margin:0 auto}
+  .kicker{font-variant:small-caps; letter-spacing:.08em; color:var(--accent);
+    font-size:.95rem; margin-bottom:.2rem}
+  h1{font-size:2.1rem; line-height:1.15; margin:.1rem 0 1.2rem; font-weight:600}
+  h2{font-size:1.3rem; margin:2.4rem 0 .6rem; font-weight:600}
+  p{margin:.7rem 0}
+  .lead{font-size:1.12rem; color:#33312c}
+  .formula{
+    background:var(--soft); border-left:3px solid var(--accent);
+    padding:.9rem 1.1rem; margin:1.2rem 0; font-size:1.15rem;
+    font-family:"Latin Modern Math","Cambria Math",Georgia,serif; overflow-x:auto;
+  }
+  code{font-family:"SF Mono",Menlo,Consolas,monospace; font-size:.92em;
+    background:var(--soft); padding:.1em .35em; border-radius:3px}
+  a{color:var(--accent)}
+  .sidenote{font-size:.9rem; color:#5a564c; border-top:1px solid var(--rule);
+    border-bottom:1px solid var(--rule); padding:.7rem 0; margin:1.4rem 0}
+
+  /* interactive widget */
+  .widget{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .val{font-family:"SF Mono",Menlo,monospace}
+  .keys{display:flex; flex-wrap:wrap; gap:.3rem}
+  .key{font-family:"SF Mono",Menlo,monospace; font-size:.9rem; border:1px solid var(--rule);
+    background:var(--paper); border-radius:6px; padding:.3rem .55rem; cursor:pointer}
+  .key:hover{background:var(--soft)}
+  .key.sel{background:#272521; color:#f3f0e7}
+  .bars{margin-top:1rem}
+  .brow{display:grid; grid-template-columns:34px 1fr 56px; gap:.6rem; align-items:center; margin:.3rem 0}
+  .brow .lbl{font-family:"SF Mono",Menlo,monospace; text-align:right}
+  .btrack{height:16px; background:var(--soft); border-radius:8px; overflow:hidden}
+  .bfill{height:100%; background:var(--accent)}
+  .btn{font:inherit; font-size:.9rem; font-variant:small-caps; letter-spacing:.05em;
+    border:1px solid var(--rule); background:#272521; color:#f3f0e7;
+    padding:.45rem 1rem; border-radius:6px; cursor:pointer}
+  .btn.ghost{background:var(--soft); color:#444}
+  .invented{margin-top:.8rem; font-family:"SF Mono",Menlo,monospace; font-size:.95rem;
+    line-height:1.7; min-height:1.7em; color:#1a1a1a}
+
+  /* code */
+  .tabs{display:flex; gap:.4rem; margin:1.2rem 0 0}
+  .tab{font:inherit; font-size:.9rem; font-variant:small-caps; letter-spacing:.05em;
+    border:1px solid var(--rule); border-bottom:none; background:var(--soft);
+    padding:.45rem 1rem; border-radius:6px 6px 0 0; cursor:pointer; color:#666}
+  .tab.active{background:#272521; color:#f3f0e7}
+  .codeblock{margin:0 0 1rem; background:#272521; color:#f3f0e7; border-radius:0 6px 6px 6px;
+    padding:1rem 1.1rem; overflow-x:auto}
+  .codeblock code{background:none; color:inherit; font-size:.86rem; line-height:1.5;
+    font-family:"SF Mono",Menlo,Consolas,monospace; white-space:pre}
+
+  /* quiz */
+  .quiz{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .q{font-weight:600; margin-bottom:.6rem}
+  .opt{display:block; width:100%; text-align:left; border:1px solid var(--rule);
+    background:var(--paper); padding:.6rem .8rem; margin:.4rem 0; border-radius:6px;
+    cursor:pointer; font:inherit}
+  .opt:hover{background:var(--soft)}
+  .opt.correct{border-color:var(--good); background:#eef7f0}
+  .opt.wrong{border-color:var(--bad); background:#f9eeee}
+  .fb{margin-top:.5rem; font-size:.95rem; min-height:1.2em}
+  footer{margin-top:3rem; border-top:1px solid var(--rule); padding-top:1rem;
+    font-size:.92rem; color:#5a564c}
+
+  /* dark theme: warm sepia night */
+  html[data-theme="dark"]{color-scheme:dark;
+    --ink:#e8e3d6; --paper:#201d18; --rule:#3d382f; --accent:#c97b6f;
+    --soft:#2a2620; --good:#8fbf9c; --bad:#d98a80}
+  html[data-theme="dark"] .lead{color:#cfc9bb}
+  html[data-theme="dark"] .sidenote, html[data-theme="dark"] footer{color:#a89f8d}
+  html[data-theme="dark"] [style*="#5a564c"]{color:#a89f8d!important}
+  html[data-theme="dark"] .quiz{background:#26221c}
+  html[data-theme="dark"] .opt.correct{background:#2a3a2e}
+  html[data-theme="dark"] .opt.wrong{background:#3d2a27}
+  html[data-theme="dark"] .tab{color:#9a9183}
+  html[data-theme="dark"] .widget{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+    background:#fff; color:#1a1a1a; color-scheme:light}
+  .themetoggle{position:fixed; top:14px; right:14px; z-index:50; width:38px; height:38px;
+    border-radius:50%; border:1px solid var(--rule); background:var(--soft); color:var(--ink);
+    font-size:1rem; cursor:pointer; line-height:1; font-family:inherit}
+  .themetoggle:hover{border-color:var(--accent)}
+  @media print{.themetoggle{display:none}
+    html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+      --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a}}
+</style>
+<script>(function(){var t=localStorage.getItem('book-theme');
+if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+document.documentElement.setAttribute('data-theme',t);})()</script>
+</head>
+<body>
+<button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
+<div class="wrap">
+  <div class="kicker">AI Foundations · Lesson 14 · Phase 5 — Under the hood of GPT</div>
+  <h1>Your First Language Model</h1>
+  <p class="lead">Today you build a model that <em>invents girls' names</em> — and in doing so you'll hold, in twenty lines, the exact job description of GPT. A <strong>language model</strong> does one thing: given some text, it assigns a probability to every possible next token, and generation is just sampling from those probabilities, over and over (<a href="https://www.3blue1brown.com/lessons/mini-llm">3Blue1Brown</a>). GPT does it with a trillion-knob network over 100k tokens; yours will do it with a counting table over 16 characters. Same machine, different size — and yours you can read whole.</p>
+
+  <h2>The job: predict the next token</h2>
+  <p>Look back at lesson 12: your digit reader output <strong>10 scores, biggest wins</strong>. A language model is the same shape with two twists: it has one output per <em>vocabulary token</em> (lesson 13), and instead of always taking the biggest, it treats the scores as <strong>probabilities</strong> and rolls dice. Generation is a loop:</p>
+  <div class="formula" style="text-align:center; font-size:1.05rem">
+    predict probabilities for the next token → sample one → append it → repeat
+  </div>
+  <p>That loop, called <strong>autoregressive generation</strong>, is all that's happening when ChatGPT "types" at you — one token at a time, each one sampled, then fed back in as context for the next. Stop dramatizing it now and you'll never be mystified by it again.</p>
+
+  <h2>The simplification that makes it buildable today: bigrams</h2>
+  <p>GPT predicts from <em>everything written so far</em>. Today we predict from <strong>only the one previous character</strong> — a model called a <strong>bigram</strong> ("pair") model. It's the classic first language model — lesson one of Andrej Karpathy's language-modeling course builds exactly this — and it needs no training loop at all, because for one-character context you can get the probabilities by <em>counting</em>:</p>
+  <div class="formula" style="text-align:center; font-size:1.25rem">
+    P(next = b | current = a) = count(a→b) ⁄ count(a→anything)
+  </div>
+  <p>Symbol by symbol: <code>P(next = b | current = a)</code> reads "the probability that the next character is <code>b</code>, <em>given</em> that the current one is <code>a</code>" — the vertical bar <code>|</code> means "given", and it's the only new notation today. The right side is just counting: of all the times <code>a</code> appeared, what fraction had <code>b</code> right after it? Count the pairs in real names, divide — done. No gradient descent needed (we'll reconnect to it at the end).</p>
+
+  <h2>Build it: count, divide, sample</h2>
+  <p>Twenty real names go in. One trick to know: we wrap each name as <code>.emma.</code> — the dot is a special token meaning both "a name starts" and "a name ends". Because the dot is in the counting, the model learns <em>where names stop</em>, all by itself. (Real LLMs do the same with special tokens — remember lesson 13's 258 special entries in GPT-4's vocabulary.) The random generator is written out by hand so that Swift and Python produce <em>bit-for-bit identical</em> names — run either and compare with the output below:</p>
+
+  <div class="tabs">
+    <button class="tab active" data-t="swift">Swift</button>
+    <button class="tab" data-t="py">Python</button>
+  </div>
+
+  <pre class="codeblock" data-lang="swift"><code>import Foundation
+
+let names = ["emma", "olivia", "ava", "isabella", "sophia", "mia", "amelia",
+             "harper", "luna", "nora", "anna", "maria", "elena", "dina",
+             "lara", "nina", "vera", "alina", "dana", "mila"]
+
+// vocabulary: '.' marks both start and end of a name
+let vocab = ["."] + Array(Set(names.joined())).sorted().map(String.init)
+var stoi: [String: Int] = [:]
+for (i, ch) in vocab.enumerated() { stoi[ch] = i }
+let V = vocab.count
+
+// count every adjacent pair across all names
+var N = Array(repeating: Array(repeating: 0, count: V), count: V)
+for name in names {
+    let s = ".\(name).".map(String.init)
+    for k in 0..&lt;s.count - 1 {
+        N[stoi[s[k]]!][stoi[s[k + 1]]!] += 1
+    }
+}
+
+// counts -> probabilities, row by row
+var P: [[Double]] = []
+for row in N {
+    let total = row.reduce(0, +)
+    P.append(total > 0 ? row.map { Double($0) / Double(total) }
+                       : Array(repeating: 1.0 / Double(V), count: V))
+}
+
+// what does the model believe comes after 'a'?
+let rowA = P[stoi["a"]!]
+let top = (0..&lt;V).sorted { rowA[$0] > rowA[$1] }.prefix(3)
+print("after 'a':", top.map { "'\(vocab[$0])' " + String(format: "%.2f", rowA[$0]) }
+                       .joined(separator: ", "))
+
+// deterministic random numbers (same algorithm as the Python version)
+var state: UInt32 = 42
+func rand() -> Double {
+    state = 1664525 &* state &+ 1013904223
+    return Double(state) / 4294967296.0
+}
+
+func sample(_ probs: [Double]) -> Int {
+    let r = rand()
+    var c = 0.0
+    for (i, p) in probs.enumerated() {
+        c += p
+        if r < c { return i }
+    }
+    return V - 1
+}
+
+print("\ninvented names:")
+for _ in 0..&lt;8 {
+    var out: [String] = [], cur = 0
+    while true {
+        cur = sample(P[cur])          // roll the dice on row P[cur]
+        if cur == 0 { break }         // sampled the dot: the name is over
+        out.append(vocab[cur])
+    }
+    print("  " + (out.isEmpty ? "(empty)" : out.joined()))
+}</code></pre>
+
+  <pre class="codeblock" data-lang="py" hidden><code>names = ["emma", "olivia", "ava", "isabella", "sophia", "mia", "amelia",
+         "harper", "luna", "nora", "anna", "maria", "elena", "dina",
+         "lara", "nina", "vera", "alina", "dana", "mila"]
+
+# vocabulary: '.' marks both start and end of a name
+vocab = ["."] + sorted(set("".join(names)))
+stoi = {ch: i for i, ch in enumerate(vocab)}
+V = len(vocab)
+
+# count every adjacent pair across all names
+N = [[0] * V for _ in range(V)]
+for name in names:
+    s = "." + name + "."
+    for a, b in zip(s, s[1:]):
+        N[stoi[a]][stoi[b]] += 1
+
+# counts -> probabilities, row by row
+P = []
+for row in N:
+    total = sum(row)
+    P.append([c / total for c in row] if total else [1.0 / V] * V)
+
+# what does the model believe comes after 'a'?
+row = P[stoi["a"]]
+top = sorted(range(V), key=lambda i: -row[i])[:3]
+print("after 'a':", ", ".join(f"'{vocab[i]}' {row[i]:.2f}" for i in top))
+
+# deterministic random numbers (same algorithm as the Swift version)
+state = 42
+def rand():
+    global state
+    state = (1664525 * state + 1013904223) % 2**32
+    return state / 2**32
+
+def sample(probs):
+    r = rand()
+    c = 0.0
+    for i, p in enumerate(probs):
+        c += p
+        if r < c: return i
+    return V - 1
+
+print("\ninvented names:")
+for _ in range(8):
+    out, cur = [], 0
+    while True:
+        cur = sample(P[cur])          # roll the dice on row P[cur]
+        if cur == 0: break            # sampled the dot: the name is over
+        out.append(vocab[cur])
+    print("  " + ("".join(out) or "(empty)"))</code></pre>
+
+  <p>Both programs print <strong>exactly</strong> this:</p>
+
+  <pre class="codeblock" style="border-radius:6px"><code>after 'a': '.' 0.68, 'r' 0.11, 'n' 0.07
+
+invented names:
+  da
+  da
+  harpha
+  opelunna
+  lariana
+  a
+  nna
+  linivela
+</code></pre>
+
+  <p>Read the first line like a fortune teller's notebook: after an <code>a</code>, the model is 68% sure the name is <em>over</em> — it has learned, purely from counting, that these names usually end in <code>a</code>. And the inventions: <em>harpha</em>, <em>lariana</em>, <em>linivela</em> were never in the list — the model composed them. Also <em>da</em> and a bare <em>a</em> — because a bigram only remembers <strong>one character of context</strong>. It knows <code>a</code> often ends a name; it cannot know the name so far is only one letter long. Hold that thought; it's the whole motivation for lesson 16.</p>
+
+  <h2>Feel it: open the model's head</h2>
+  <p>This widget holds the same table P. Pick a character to see the model's beliefs about what follows it. Then press <strong>invent a name</strong> — it uses the same dice as the programs, so your first eight names will be <em>exactly</em> the eight above.</p>
+
+  <div class="widget">
+    <div class="keys" id="keys"></div>
+    <div class="bars" id="bars"></div>
+    <div style="margin-top:1rem; display:flex; gap:.6rem; align-items:center">
+      <button class="btn" id="invent">invent a name</button>
+      <button class="btn ghost" id="greedy">always take the most likely</button>
+    </div>
+    <div class="invented" id="invented"></div>
+  </div>
+
+  <h2>Why sample? The greedy trap</h2>
+  <p>Why roll dice instead of always taking the most likely next character? Press the second button and see: starting from the dot, the most likely first character is <code>a</code> (4 of our 20 names start with it), and after <code>a</code> the most likely "next" is the end-dot (that 0.68). So <strong>greedy</strong> generation produces the name <code>a</code> — and, being deterministic, it produces <code>a</code> again, forever. One boring answer, repeated. Sampling is what buys variety — and the dial that adjusts <em>how</em> adventurous the dice are is called <strong>temperature</strong>, which you'll meet properly in lesson 18 (it's the same knob you see in every LLM API).</p>
+
+  <h2>The bridge to GPT — two upgrades, that's all</h2>
+  <p>Write our model's recipe next to GPT's:</p>
+  <div class="formula" style="font-size:1.02rem">
+    bigram:&nbsp; P(next | <strong>one previous character</strong>) — stored in a <strong>counted table</strong><br>
+    GPT:&nbsp;&nbsp;&nbsp; P(next | <strong>everything so far</strong>) — computed by a <strong>trained network</strong>
+  </div>
+  <p><strong>Upgrade 1: more context.</strong> One character of memory produced <em>da</em>. Real text needs the whole story so far — but "the story so far" is different for every position in every text, so something must let each new token <em>look back</em> at all the others and decide what matters. That mechanism is <strong>attention</strong>, lesson 16.</p>
+  <p><strong>Upgrade 2: compute, don't store.</strong> Our table is 16×16 — fine. But a table over <em>contexts</em> explodes: even just two characters of context needs V² rows, three needs V³… with GPT-4's 100,258-token vocabulary and contexts thousands of tokens long, the table would need more rows than there are atoms in the universe. Nobody stores that table. Instead a <strong>neural network computes its row on demand</strong>: context in, probabilities out — and the network's weights are trained with exactly your lesson-9 loop, using exactly lesson 12's cross-entropy loss on the true next token. (That sentence is the entire secret of LLM training; lesson 18 unpacks it.)</p>
+
+  <div class="sidenote"><strong>Full circle with lesson 12.</strong> Your digit reader: 784 pixels in → 10 scores → biggest wins. A GPT-style model: context tokens in → 100,258 scores → softmax → sample. The output layer of ChatGPT is your MNIST output layer with a bigger vocabulary and dice at the end.</div>
+
+  <h2>Check yourself</h2>
+  <p>No peeking back. Pull it from memory.</p>
+
+  <div class="quiz" id="quiz1">
+    <div class="q">1. What is the one job of any language model?</div>
+    <button class="opt" data-c="0">store every sentence people have ever written</button>
+    <button class="opt" data-c="0">check every sentence against the grammar rules</button>
+    <button class="opt" data-c="1">give every possible next token a probability</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz2">
+    <div class="q">2. Our model invented "harpha", which is in no name list. How?</div>
+    <button class="opt" data-c="1">each character was sampled from learned pair statistics</button>
+    <button class="opt" data-c="0">each character was copied from one training name</button>
+    <button class="opt" data-c="0">each character was chosen by the spelling rules</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz3">
+    <div class="q">3. Why does greedy generation (always the most likely) disappoint?</div>
+    <button class="opt" data-c="0">it crashes once the table holds equal probabilities</button>
+    <button class="opt" data-c="1">it repeats one deterministic answer forever and ever</button>
+    <button class="opt" data-c="0">it samples too many rare characters every time</button>
+    <div class="fb"></div>
+  </div>
+
+  <h2>Watch this next</h2>
+  <p>Primary source: <a href="https://youtu.be/PaCmpygFfXo"><strong>Andrej Karpathy — "The spelled-out intro to language modeling: building makemore"</strong></a>. He builds this exact bigram model on 32,000 real names, then — and this is the part to watch for — replaces the counting with a trained one-layer network and shows they land on the <em>same probabilities</em>. It's the cleanest demonstration ever filmed that "counting" and "training with cross-entropy" are two roads to the same place.</p>
+
+  <footer>
+    <p><strong>Your win today:</strong> you built a complete language model — count, divide, sample — watched it invent names, and you can now state GPT's job in one sentence: compute P(next token | everything so far) and roll the dice.</p>
+    <p>Previous: <a href="0013-text-becomes-numbers-tokens.html">Lesson 13 — Text Becomes Numbers: Tokens</a> · Next: <a href="0015-embeddings-words-as-vectors.html">Lesson 15 — Embeddings: Words as Vectors</a></p>
+  </footer>
+</div>
+
+<script>
+  const $=id=>document.getElementById(id);
+
+  // ---- the same model as the programs, built live from the same names ----
+  const NAMES=["emma","olivia","ava","isabella","sophia","mia","amelia",
+               "harper","luna","nora","anna","maria","elena","dina",
+               "lara","nina","vera","alina","dana","mila"];
+  const VOCAB=["."].concat([...new Set(NAMES.join(""))].sort());
+  const STOI={}; VOCAB.forEach((c,i)=>STOI[c]=i);
+  const V=VOCAB.length;
+  const N=Array.from({length:V},()=>Array(V).fill(0));
+  NAMES.forEach(nm=>{
+    const s="."+nm+".";
+    for(let k=0;k<s.length-1;k++) N[STOI[s[k]]][STOI[s[k+1]]]++;
+  });
+  const P=N.map(row=>{
+    const t=row.reduce((a,b)=>a+b,0);
+    return t? row.map(c=>c/t) : row.map(()=>1/V);
+  });
+
+  // ---- beliefs panel ----
+  let selKey=".";
+  function renderKeys(){
+    $('keys').innerHTML=VOCAB.map(c=>
+      '<button class="key'+(c===selKey?' sel':'')+'" data-k="'+c+'">'+(c==="."?"· start":c)+'</button>').join('');
+    document.querySelectorAll('.key').forEach(k=>
+      k.addEventListener('click',()=>{selKey=k.dataset.k; renderKeys(); renderBars();}));
+  }
+  function renderBars(){
+    const row=P[STOI[selKey]];
+    const order=row.map((p,i)=>[p,i]).filter(x=>x[0]>0).sort((a,b)=>b[0]-a[0]);
+    $('bars').innerHTML = order.map(([p,i])=>
+      '<div class="brow"><span class="lbl">'+(VOCAB[i]==="."?"end":VOCAB[i])+'</span>'+
+      '<div class="btrack"><div class="bfill" style="width:'+(p*100)+'%"></div></div>'+
+      '<span class="val">'+p.toFixed(2)+'</span></div>').join('')
+      || '<div style="color:#999">this character never appears mid-name</div>';
+  }
+  renderKeys(); renderBars();
+
+  // ---- generation: same LCG as the programs, seed 42 ----
+  let state=42;
+  function rand(){ state=(Math.imul(1664525,state)+1013904223)>>>0; return state/4294967296; }
+  function sample(probs){
+    const r=rand(); let c=0;
+    for(let i=0;i<probs.length;i++){ c+=probs[i]; if(r<c) return i; }
+    return probs.length-1;
+  }
+  const made=[];
+  $('invent').addEventListener('click',()=>{
+    let cur=0, out="";
+    while(true){ cur=sample(P[cur]); if(cur===0) break; out+=VOCAB[cur]; }
+    made.push(out||"(empty)");
+    $('invented').textContent=made.join("   ");
+  });
+  $('greedy').addEventListener('click',()=>{
+    let cur=0, out="", guard=0;
+    while(guard++<30){
+      let best=0, bp=-1;
+      P[cur].forEach((p,i)=>{ if(p>bp){bp=p; best=i;} });
+      cur=best; if(cur===0) break; out+=VOCAB[cur];
+    }
+    $('invented').textContent='greedy says: "'+out+'" — press again: "'+out+'" again. Forever.';
+  });
+</script>
+<script>
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      const t=tab.dataset.t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.t===t));
+      document.querySelectorAll('.codeblock[data-lang]').forEach(c=>c.hidden=(c.dataset.lang!==t));
+    });
+  });
+  document.querySelectorAll('.quiz').forEach(q=>{
+    q.querySelectorAll('.opt').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        if(q.dataset.done) return;
+        q.dataset.done=1;
+        const correct=btn.dataset.c==='1';
+        btn.classList.add(correct?'correct':'wrong');
+        if(!correct){
+          q.querySelector('.opt[data-c="1"]').classList.add('correct');
+        }
+        q.querySelector('.fb').textContent = correct ? 'Correct — locked in.' : 'Not quite — the green one is right.';
+      });
+    });
+  });
+</script>
+<script>
+(function(){
+  var b=document.getElementById('themeToggle');
+  function sync(){b.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀':'☾';}
+  b.addEventListener('click',function(){
+    var next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{localStorage.setItem('book-theme',next);}catch(e){}
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI from the Ground Up — Student's Book</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.55; margin:0; padding:3rem 1.2rem 5rem;
+  }
+  .wrap{max-width:680px; margin:0 auto}
+  .kicker{font-variant:small-caps; letter-spacing:.08em; color:var(--accent);
+    font-size:.95rem; margin-bottom:.2rem}
+  h1{font-size:2.4rem; line-height:1.1; margin:.1rem 0 .6rem; font-weight:600}
+  .lead{font-size:1.15rem; color:#33312c; margin-bottom:2rem}
+  h2{font-size:1.05rem; margin:2.2rem 0 .6rem; font-weight:600;
+    font-variant:small-caps; letter-spacing:.06em; color:var(--accent)}
+  .phase-sub{font-size:.92rem; color:#5a564c; margin:-.4rem 0 .8rem}
+  ol.toc{list-style:none; margin:0; padding:0}
+  ol.toc li{margin:.45rem 0}
+  ol.toc a{display:flex; align-items:baseline; gap:.8rem; text-decoration:none;
+    color:var(--ink); border:1px solid var(--rule); border-radius:8px;
+    padding:.65rem .9rem; background:#fff; transition:background .12s}
+  ol.toc a:hover{background:var(--soft)}
+  .num{font-family:"SF Mono",Menlo,monospace; font-size:.85rem; color:var(--accent);
+    min-width:1.6em; text-align:right}
+  .ttl{font-weight:600}
+  .desc{font-size:.88rem; color:#5a564c}
+  .start{display:inline-block; background:var(--accent); color:#fdfcf8;
+    text-decoration:none; padding:.7rem 1.4rem; border-radius:8px;
+    font-size:1.05rem; margin:.6rem 0 0}
+  .start:hover{opacity:.92}
+  footer{margin-top:3rem; border-top:1px solid var(--rule); padding-top:1rem;
+    font-size:.92rem; color:#5a564c}
+  footer a{color:var(--accent)}
+
+  /* dark theme: warm sepia night */
+  html[data-theme="dark"]{color-scheme:dark;
+    --ink:#e8e3d6; --paper:#201d18; --rule:#3d382f; --accent:#c97b6f;
+    --soft:#2a2620; --good:#8fbf9c; --bad:#d98a80}
+  html[data-theme="dark"] .lead{color:#cfc9bb}
+  html[data-theme="dark"] .sidenote, html[data-theme="dark"] footer,
+  html[data-theme="dark"] .phase-sub, html[data-theme="dark"] .desc,
+  html[data-theme="dark"] .sub, html[data-theme="dark"] .note{color:#a89f8d}
+  html[data-theme="dark"] [style*="#5a564c"]{color:#a89f8d!important}
+  html[data-theme="dark"] .quiz{background:#26221c}
+  html[data-theme="dark"] .opt.correct{background:#2a3a2e}
+  html[data-theme="dark"] .opt.wrong{background:#3d2a27}
+  html[data-theme="dark"] .tab{color:#9a9183}
+  /* widgets stay light: printed-figure look, keeps all verified canvas/SVG colors intact */
+  html[data-theme="dark"] .widget{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+    background:#fff; color:#1a1a1a; color-scheme:light}
+  .themetoggle{position:fixed; top:14px; right:14px; z-index:50; width:38px; height:38px;
+    border-radius:50%; border:1px solid var(--rule); background:var(--soft); color:var(--ink);
+    font-size:1rem; cursor:pointer; line-height:1; font-family:inherit}
+  .themetoggle:hover{border-color:var(--accent)}
+  @media print{.themetoggle{display:none}
+    html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+      --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a}}
+  html[data-theme="dark"] ol.toc a{background:#26221c}
+</style>
+<script>(function(){var t=localStorage.getItem('book-theme');
+if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+document.documentElement.setAttribute('data-theme',t);})()</script>
+</head>
+<body>
+<button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
+<div class="wrap">
+  <div class="kicker">A Student's Book</div>
+  <h1>AI from the Ground Up</h1>
+  <p class="lead">From a single artificial neuron to the inside of GPT — the real math and the real code, one short lesson at a time. No magic, no hand-waving: every formula explained symbol by symbol, every claim cited, every number computed for real.</p>
+
+  <a class="start" href="lessons/0001-the-artificial-neuron.html">Start with Lesson 1 →</a>
+
+  <h2>Phase 1 — One Neuron</h2>
+  <p class="phase-sub">The atom of all modern AI: what it computes and what it can decide.</p>
+  <ol class="toc">
+    <li><a href="lessons/0001-the-artificial-neuron.html"><span class="num">1</span><span><span class="ttl">The Artificial Neuron</span><br><span class="desc">Weights, bias, sigmoid — what one neuron computes, in math, Swift, and Python.</span></span></a></li>
+    <li><a href="lessons/0002-the-neuron-as-decision-maker.html"><span class="num">2</span><span><span class="ttl">The Neuron as Decision-Maker</span><br><span class="desc">One neuron draws a straight line — set its weights by hand to build the AND gate.</span></span></a></li>
+  </ol>
+
+  <h2>Phase 2 — Many Neurons → a Network</h2>
+  <p class="phase-sub">Neurons stack into layers, layers chain into networks.</p>
+  <ol class="toc">
+    <li><a href="lessons/0003-a-layer-of-neurons.html"><span class="num">3</span><span><span class="ttl">A Layer of Neurons — Enter the Vector</span><br><span class="desc">Many neurons share the same inputs: the weight matrix and a = σ(W·x + b).</span></span></a></li>
+    <li><a href="lessons/0004-stacking-layers-the-forward-pass.html"><span class="num">4</span><span><span class="ttl">Stacking Layers — the Forward Pass</span><br><span class="desc">Chain layers and push numbers through; a tiny hand-built network solves XOR.</span></span></a></li>
+    <li><a href="lessons/0005-activation-functions.html"><span class="num">5</span><span><span class="ttl">Activation Functions — and Why ReLU Took Over</span><br><span class="desc">Why networks need nonlinearity at all; meet sigmoid, tanh, and ReLU.</span></span></a></li>
+  </ol>
+
+  <h2>Phase 3 — How a Network Learns</h2>
+  <p class="phase-sub">The heart of the course: loss, gradients, and the loop that trains.</p>
+  <ol class="toc">
+    <li><a href="lessons/0006-loss-measuring-wrong.html"><span class="num">6</span><span><span class="ttl">Loss — Measuring How Wrong We Are</span><br><span class="desc">One number summarizes the network's wrongness — the key that unlocks learning.</span></span></a></li>
+    <li><a href="lessons/0007-gradient-descent.html"><span class="num">7</span><span><span class="ttl">Gradient Descent — Rolling Downhill</span><br><span class="desc">Compute the slope, step against it, watch the loss shrink — by hand and in code.</span></span></a></li>
+    <li><a href="lessons/0008-backpropagation.html"><span class="num">8</span><span><span class="ttl">Backpropagation — the Error Flows Backwards</span><br><span class="desc">The chain rule as link-multiplication: one full backward pass, every number shown.</span></span></a></li>
+    <li><a href="lessons/0009-the-training-loop.html"><span class="num">9</span><span><span class="ttl">The Training Loop</span><br><span class="desc">Forward, loss, backward, update, repeat — a neuron learns the AND gate itself.</span></span></a></li>
+  </ol>
+
+  <h2>Phase 4 — Build Your Own</h2>
+  <p class="phase-sub">The mission cashes out: networks you train yourself.</p>
+  <ol class="toc">
+    <li><a href="lessons/0010-train-a-tiny-network-from-scratch.html"><span class="num">10</span><span><span class="ttl">Train a Tiny Network from Scratch</span><br><span class="desc">Pure Python, no libraries: a 2-2-1 network learns XOR from data.</span></span></a></li>
+    <li><a href="lessons/0011-the-same-net-in-pytorch.html"><span class="num">11</span><span><span class="ttl">The Same Net in PyTorch</span><br><span class="desc">Rebuild it in ~25 lines in Colab — and map every line to the concept it replaces.</span></span></a></li>
+    <li><a href="lessons/0012-real-data-handwritten-digits.html"><span class="num">12</span><span><span class="ttl">Real Data — Handwritten Digits</span><br><span class="desc">Train a digit reader on MNIST in Colab. Your own model, on real data.</span></span></a></li>
+  </ol>
+
+  <h2>Phase 5 — Under the Hood of GPT</h2>
+  <p class="phase-sub">Text generation from the inside: tokens, attention, the transformer, and how ChatGPT is made.</p>
+  <ol class="toc">
+    <li><a href="lessons/0013-text-becomes-numbers-tokens.html"><span class="num">13</span><span><span class="ttl">Text Becomes Numbers: Tokens</span><br><span class="desc">Build a tokenizer in ten lines; meet BPE and why LLMs never see letters.</span></span></a></li>
+    <li><a href="lessons/0014-your-first-language-model.html"><span class="num">14</span><span><span class="ttl">Your First Language Model</span><br><span class="desc">Count, divide, sample — a bigram model invents names, and GPT's job becomes one sentence.</span></span></a></li>
+    <li><a href="lessons/0015-embeddings-words-as-vectors.html"><span class="num">15</span><span><span class="ttl">Embeddings: Words as Vectors</span><br><span class="desc">Meaning becomes geometry: cosine similarity and king − man + woman = queen, by hand.</span></span></a></li>
+    <li><a href="lessons/0016-attention-every-token-looks-back.html"><span class="num">16</span><span><span class="ttl">Attention: Every Token Looks Back</span><br><span class="desc">Queries, keys, values, causal mask — "cat" absorbs "fluffy" and "blue", every number checked.</span></span></a></li>
+    <li><a href="lessons/0017-the-transformer.html"><span class="num">17</span><span><span class="ttl">The Transformer</span><br><span class="desc">Assembly day: all the parts snap together into the architecture of GPT. No new math.</span></span></a></li>
+    <li><a href="lessons/0018-how-gpt-is-trained.html"><span class="num">18</span><span><span class="ttl">How GPT Is Trained</span><br><span class="desc">Pretraining, RLHF, temperature, hallucination — and training your own GPT in Colab.</span></span></a></li>
+    <li><a href="lessons/0019-the-practitioners-toolbox.html"><span class="num">19</span><span><span class="ttl">The Practitioner's Toolbox</span><br><span class="desc">Languages, notebooks, GPUs, Hugging Face, Ollama — and what to install for each path.</span></span></a></li>
+  </ol>
+
+  <h2>Appendix — keep these open while you read</h2>
+  <p class="phase-sub">Reference pages: printable, themed, always one click away.</p>
+  <ol class="toc">
+    <li><a href="reference/python-for-swift-developers.html"><span class="num">A</span><span><span class="ttl">Python for the Swift Developer</span><br><span class="desc">Every Python construct used in this book, explained through Swift. Read it before Lesson 1's Python tab.</span></span></a></li>
+    <li><a href="reference/formulas-cheat-sheet.html"><span class="num">B</span><span><span class="ttl">Formulas Cheat Sheet</span><br><span class="desc">All the course math on one printable page, with verified sanity-check numbers.</span></span></a></li>
+  </ol>
+
+
+
+</div>
+<script>
+(function(){
+  var b=document.getElementById('themeToggle');
+  function sync(){b.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀':'☾';}
+  b.addEventListener('click',function(){
+    var next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{localStorage.setItem('book-theme',next);}catch(e){}
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

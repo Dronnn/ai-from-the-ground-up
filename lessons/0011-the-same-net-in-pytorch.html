@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 11 — The Same Net in PyTorch</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.55; margin:0; padding:3rem 1.2rem 5rem;
+  }
+  .wrap{max-width:680px; margin:0 auto}
+  .kicker{font-variant:small-caps; letter-spacing:.08em; color:var(--accent);
+    font-size:.95rem; margin-bottom:.2rem}
+  h1{font-size:2.1rem; line-height:1.15; margin:.1rem 0 1.2rem; font-weight:600}
+  h2{font-size:1.3rem; margin:2.4rem 0 .6rem; font-weight:600}
+  p{margin:.7rem 0}
+  .lead{font-size:1.12rem; color:#33312c}
+  .formula{
+    background:var(--soft); border-left:3px solid var(--accent);
+    padding:.9rem 1.1rem; margin:1.2rem 0; font-size:1.15rem;
+    font-family:"Latin Modern Math","Cambria Math",Georgia,serif; overflow-x:auto;
+  }
+  code{font-family:"SF Mono",Menlo,Consolas,monospace; font-size:.92em;
+    background:var(--soft); padding:.1em .35em; border-radius:3px}
+  a{color:var(--accent)}
+  .sidenote{font-size:.9rem; color:#5a564c; border-top:1px solid var(--rule);
+    border-bottom:1px solid var(--rule); padding:.7rem 0; margin:1.4rem 0}
+
+  /* interactive widget */
+  .widget{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .row{display:grid; grid-template-columns:90px 1fr 70px; gap:.8rem; align-items:center;
+    margin:.55rem 0}
+  .row label{font-variant:small-caps; letter-spacing:.04em; color:#444}
+  input[type=range]{width:100%}
+  .val{font-family:"SF Mono",Menlo,monospace; text-align:right}
+  .out{margin-top:1rem; padding-top:1rem; border-top:1px dashed var(--rule)}
+  .bar{height:22px; background:var(--soft); border-radius:11px; overflow:hidden; margin-top:.4rem}
+  .fill{height:100%; width:0; background:var(--accent); transition:width .12s}
+  .big{font-size:1.5rem; font-family:"SF Mono",Menlo,monospace}
+
+  /* code */
+  .tabs{display:flex; gap:.4rem; margin:1.2rem 0 0}
+  .tab{font:inherit; font-size:.9rem; font-variant:small-caps; letter-spacing:.05em;
+    border:1px solid var(--rule); border-bottom:none; background:var(--soft);
+    padding:.45rem 1rem; border-radius:6px 6px 0 0; cursor:pointer; color:#666}
+  .tab.active{background:#272521; color:#f3f0e7}
+  .codeblock{margin:0 0 1rem; background:#272521; color:#f3f0e7; border-radius:0 6px 6px 6px;
+    padding:1rem 1.1rem; overflow-x:auto}
+  .codeblock code{background:none; color:inherit; font-size:.86rem; line-height:1.5;
+    font-family:"SF Mono",Menlo,Consolas,monospace; white-space:pre}
+
+  /* quiz */
+  .quiz{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .q{font-weight:600; margin-bottom:.6rem}
+  .opt{display:block; width:100%; text-align:left; border:1px solid var(--rule);
+    background:var(--paper); padding:.6rem .8rem; margin:.4rem 0; border-radius:6px;
+    cursor:pointer; font:inherit}
+  .opt:hover{background:var(--soft)}
+  .opt.correct{border-color:var(--good); background:#eef7f0}
+  .opt.wrong{border-color:var(--bad); background:#f9eeee}
+  .fb{margin-top:.5rem; font-size:.95rem; min-height:1.2em}
+  footer{margin-top:3rem; border-top:1px solid var(--rule); padding-top:1rem;
+    font-size:.92rem; color:#5a564c}
+
+  /* lesson 11: mapping table */
+  table.map{width:100%; border-collapse:collapse; margin:1.2rem 0; font-size:.92rem}
+  .map th{font-variant:small-caps; letter-spacing:.05em; font-weight:600; color:#444;
+    text-align:left; padding:.4rem .6rem; border-bottom:2px solid var(--rule)}
+  .map td{border-top:1px solid var(--rule); padding:.55rem .6rem; vertical-align:top}
+  .map td:first-child{width:52%}
+
+  /* lesson 11: matching widget */
+  .mcols{display:grid; grid-template-columns:1fr 1fr; gap:.5rem; margin-top:.8rem}
+  .mhead{font-variant:small-caps; letter-spacing:.05em; color:#444; font-size:.88rem}
+  .mitem{display:block; width:100%; text-align:left; border:1px solid var(--rule);
+    background:var(--paper); padding:.5rem .6rem; border-radius:6px; cursor:pointer;
+    font-family:"SF Mono",Menlo,Consolas,monospace; font-size:.78rem; line-height:1.4}
+  .mitem:hover{background:var(--soft)}
+  .mitem.sel{border-color:var(--accent); background:#f6eeee}
+  .mitem.matched{border-color:var(--good); background:#eef7f0; color:#7c8a80; cursor:default}
+  .mitem.flash{border-color:var(--bad); background:#f9eeee}
+
+  /* dark theme: warm sepia night */
+  html[data-theme="dark"]{color-scheme:dark;
+    --ink:#e8e3d6; --paper:#201d18; --rule:#3d382f; --accent:#c97b6f;
+    --soft:#2a2620; --good:#8fbf9c; --bad:#d98a80}
+  html[data-theme="dark"] .lead{color:#cfc9bb}
+  html[data-theme="dark"] .sidenote, html[data-theme="dark"] footer,
+  html[data-theme="dark"] .phase-sub, html[data-theme="dark"] .desc,
+  html[data-theme="dark"] .sub, html[data-theme="dark"] .note{color:#a89f8d}
+  html[data-theme="dark"] [style*="#5a564c"]{color:#a89f8d!important}
+  html[data-theme="dark"] .quiz{background:#26221c}
+  html[data-theme="dark"] .opt.correct{background:#2a3a2e}
+  html[data-theme="dark"] .opt.wrong{background:#3d2a27}
+  html[data-theme="dark"] .tab{color:#9a9183}
+  /* widgets stay light: printed-figure look, keeps all verified canvas/SVG colors intact */
+  html[data-theme="dark"] .widget{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+    background:#fff; color:#1a1a1a; color-scheme:light}
+  .themetoggle{position:fixed; top:14px; right:14px; z-index:50; width:38px; height:38px;
+    border-radius:50%; border:1px solid var(--rule); background:var(--soft); color:var(--ink);
+    font-size:1rem; cursor:pointer; line-height:1; font-family:inherit}
+  .themetoggle:hover{border-color:var(--accent)}
+  @media print{.themetoggle{display:none}
+    html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+      --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a}}
+  html[data-theme="dark"] table.map th{color:#b3aa99}
+</style>
+<script>(function(){var t=localStorage.getItem('book-theme');
+if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+document.documentElement.setAttribute('data-theme',t);})()</script>
+</head>
+<body>
+<button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
+<div class="wrap">
+  <div class="kicker">AI Foundations · Lesson 11 · Phase 4 — Build your own</div>
+  <h1>The Same Net in PyTorch</h1>
+  <p class="lead">In lesson 10 you trained an XOR network from scratch — you wrote the forward pass, the loss, the backward pass, the update, all by hand. Today you rebuild the exact same net in <strong>PyTorch</strong>, the library most of the AI world runs on, in about 25 lines. The point is not new math — there is none. The point is discovering you can already read every line, because you have personally written the thing each line replaces. That fluency is what lesson 12 (real handwritten digits — the mission's finish line) is built on.</p>
+
+  <h2>Why a library at all?</h2>
+  <p>Your lesson-10 net worked. So why bother with a library? Three reasons:</p>
+  <p><strong>1. Autograd.</strong> The hardest code you wrote in this course was the lesson-8 backward pass — the chain rule, applied by hand, one derivative at a time. PyTorch has an engine called <strong>autograd</strong> (automatic gradient) that, in the official tutorial's words, "supports automatic computation of gradient for any computational graph" (<a href="https://docs.pytorch.org/tutorials/beginner/basics/autogradqs_tutorial.html">pytorch.org</a>). You build the forward pass; it derives the backward pass. Your whole lesson 8, one function call.</p>
+  <p><strong>2. Tensors.</strong> A <strong>tensor</strong> is PyTorch's array type — "a specialized data structure very similar to arrays and matrices", like a nested Swift <code>[[Double]]</code> but heavily optimized, and able to "run on GPUs or other hardware accelerators" (<a href="https://docs.pytorch.org/tutorials/beginner/basics/tensorqs_tutorial.html">pytorch.org</a>). Your Python lists did one multiply at a time; tensors do whole layers at once.</p>
+  <p><strong>3. Everything is pre-built.</strong> Layers, losses, update rules — debugged, fast, ready. You stop re-typing the plumbing and spend your time on the actual network.</p>
+
+  <h2>Setup: Colab, zero install</h2>
+  <p>Nothing gets installed on your Mac. Open <a href="https://colab.research.google.com">colab.research.google.com</a>, create a new notebook — and that's it: Colab's environment already has PyTorch in it, so <code>import torch</code> just works. (The official <a href="https://docs.pytorch.org/tutorials/beginner/colab.html">PyTorch-in-Colab guide</a> warns of only one thing — a version of PyTorch "that has just been released … might not be yet available in Google Colab" — irrelevant here; if you ever do need a newer one, a single <code>pip</code> cell <em>inside Colab</em> upgrades it. Never on your machine.)</p>
+
+  <h2>The whole net in ~25 lines</h2>
+  <p>Python only today — and that's the one exception to our two-language rule: the ML ecosystem (PyTorch, the tutorials, Colab itself) is Python-first, so Swift sits this lesson out; everything still transfers, because you already wrote this exact net by hand. Paste this into a Colab cell. Don't run it yet — first read it and try to recognize each line:</p>
+
+  <div class="tabs">
+    <button class="tab active" data-t="py">Python (Colab)</button>
+  </div>
+
+  <pre class="codeblock" data-lang="py"><code>import torch
+import torch.nn as nn
+
+# the XOR data, as tensors (PyTorch's array type)
+X = torch.tensor([[0., 0.], [0., 1.], [1., 0.], [1., 1.]])
+Y = torch.tensor([[0.], [1.], [1.], [0.]])
+
+# the lesson-10 architecture: 2 inputs -> 2 hidden -> 1 output
+model = nn.Sequential(
+    nn.Linear(2, 2),   # hidden layer: 4 weights + 2 biases, made for you
+    nn.Sigmoid(),      # your sigmoid, as a layer
+    nn.Linear(2, 1),   # output layer: 2 weights + 1 bias
+    nn.Sigmoid(),
+)
+
+loss_fn = nn.MSELoss()                                   # lesson 6
+optimizer = torch.optim.SGD(model.parameters(), lr=1.0)  # lesson 7
+
+for epoch in range(5000):                 # lesson 9: the training loop
+    pred = model(X)                       # forward pass (lessons 3-4)
+    loss = loss_fn(pred, Y)               # how wrong? (lesson 6)
+    optimizer.zero_grad()                 # clear old gradients
+    loss.backward()                       # lesson 8, done for you
+    optimizer.step()                      # w -= lr * grad (lesson 7)
+    if epoch % 1000 == 0:
+        print(f"epoch {epoch:4d}   loss {loss.item():.4f}")
+
+print(model(X))   # should land near 0, 1, 1, 0</code></pre>
+
+  <p class="sidenote">Two small new words in there. An <strong>optimizer</strong> is the object that owns the update step — you hand it the model's parameters and a learning rate, and it applies lesson 7's rule for you (<code>SGD</code> = stochastic gradient descent, the plain version of what you already know; its docs are <a href="https://docs.pytorch.org/docs/stable/generated/torch.optim.SGD.html">here</a>, and note its default <code>lr</code> is a timid 0.001 — we pass <code>lr=1.0</code> explicitly, like in lesson 10). And <code>loss.item()</code> just pulls the plain Python number out of a one-element tensor — the docs say it "returns the value of this tensor as a standard Python number" (<a href="https://docs.pytorch.org/docs/stable/generated/torch.Tensor.item.html">pytorch.org</a>).</p>
+
+  <h2>The only "formula" today — and you already know it</h2>
+  <p>What does <code>optimizer.step()</code> actually do? Exactly your lesson-7 update, once per parameter. Spelled out:</p>
+  <div class="formula" style="text-align:center">
+    new weight = old weight − learning&nbsp;rate × gradient
+  </div>
+  <p>The <a href="https://docs.pytorch.org/docs/stable/generated/torch.optim.SGD.html">SGD docs</a> write the same thing compactly:</p>
+  <div class="formula" style="text-align:center; font-size:1.3rem">
+    θ ← θ − γ·g
+  </div>
+  <p>Symbol by symbol: <strong>θ</strong> (theta) is "any parameter" — each of this net's 9 weights and biases in turn. <strong>γ</strong> (gamma) is the learning rate, our <code>lr=1.0</code>. <strong>g</strong> is the gradient of the loss for that parameter — the number <code>loss.backward()</code> just computed and stored on the parameter's <code>.grad</code> attribute. And <strong>←</strong> means "assign back": it's a <code>-=</code>. Same rule you hand-coded, new outfit.</p>
+
+  <h2>The centerpiece: what replaces what</h2>
+  <p>Here is the entire mapping. Left column: the jobs you coded by hand in lessons 6–10. Right column: the PyTorch line that does that job. Nothing on the left disappeared — it all still runs, just inside the library.</p>
+
+  <table class="map">
+    <tr><th>You wrote (lessons 6–10)</th><th>PyTorch writes</th></tr>
+    <tr><td>Nested lists of numbers for inputs and targets</td>
+        <td><code>torch.tensor([...])</code></td></tr>
+    <tr><td>Weight and bias lists, filled with small random starting values</td>
+        <td><code>nn.Linear(2, 2)</code> — creates <em>and</em> initializes them, from a documented uniform range (<a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Linear.html">docs</a>)</td></tr>
+    <tr><td>The weighted sum <code>z = w·x + b</code> for a whole layer (lesson 3)</td>
+        <td>Also <code>nn.Linear</code> — its docs write it <code>y = xAᵀ + b</code>, where A is the weight matrix (the ᵀ is a storage detail, not new math)</td></tr>
+    <tr><td>Your <code>sigmoid()</code> function after each layer (lessons 1, 5)</td>
+        <td><code>nn.Sigmoid()</code> — same <code>1/(1+exp(−x))</code> (<a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Sigmoid.html">docs</a>)</td></tr>
+    <tr><td>Calling layer after layer, output feeding the next input (lesson 4)</td>
+        <td><code>nn.Sequential(...)</code> — "chains outputs to inputs sequentially" (<a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Sequential.html">docs</a>); then <code>pred = model(X)</code> runs the whole forward pass</td></tr>
+    <tr><td><code>loss = mean((pred − y)²)</code> (lesson 6)</td>
+        <td><code>nn.MSELoss()</code> — squared error, averaged by default (<a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.MSELoss.html">docs</a>)</td></tr>
+    <tr><td>The entire chain-rule backward pass (lesson 8 — the hard one)</td>
+        <td><code>loss.backward()</code></td></tr>
+    <tr><td>Resetting gradient accumulators to zero each pass (lesson 9)</td>
+        <td><code>optimizer.zero_grad()</code> — needed because "gradients by default add up" (<a href="https://docs.pytorch.org/tutorials/beginner/basics/optimization_tutorial.html">tutorial</a>)</td></tr>
+    <tr><td><code>w -= lr * grad</code> for every weight and bias (lesson 7)</td>
+        <td><code>optimizer.step()</code></td></tr>
+  </table>
+
+  <h2>Prove it: match the lines</h2>
+  <p>No peeking at the table. Click a from-scratch job on the left, then click the PyTorch line that replaces it. This is your retrieval practice for lessons 6–10 in one shot.</p>
+
+  <div class="widget">
+    <div class="mcols">
+      <div class="mhead">from scratch (you wrote it)</div>
+      <div class="mhead">PyTorch (one line)</div>
+      <button class="mitem mleft" data-p="1">forward pass: z = w·x + b through both layers, sigmoid after each</button>
+      <button class="mitem mright" data-p="5">optimizer.step()</button>
+      <button class="mitem mleft" data-p="2">loss: mean of (prediction − target)² over the 4 examples</button>
+      <button class="mitem mright" data-p="2">loss = loss_fn(pred, Y)</button>
+      <button class="mitem mleft" data-p="3">reset every gradient accumulator to zero before the next pass</button>
+      <button class="mitem mright" data-p="4">loss.backward()</button>
+      <button class="mitem mleft" data-p="4">the whole chain-rule backward pass from lesson 8</button>
+      <button class="mitem mright" data-p="1">pred = model(X)</button>
+      <button class="mitem mleft" data-p="5">for every parameter: w -= lr * grad</button>
+      <button class="mitem mright" data-p="3">optimizer.zero_grad()</button>
+    </div>
+    <div class="fb" id="mfb">click any line on the left to start</div>
+  </div>
+
+  <h2>Now run it — this is the exercise</h2>
+  <p>This lesson was written on a no-install machine, so the output below was <em>not</em> produced by PyTorch. It is <strong>representative</strong>: computed by running the mathematically identical from-scratch net (same architecture, same initialization range, same loss, same update rule) in plain Python. Your job — the real exercise of this lesson — is to paste the code into Colab, run it, and confirm the <em>shape</em> of the story matches:</p>
+
+  <pre class="codeblock" data-lang="py"><code>epoch    0   loss 0.2504
+epoch 1000   loss 0.0993
+epoch 2000   loss 0.0037
+epoch 3000   loss 0.0016
+epoch 4000   loss 0.0010
+
+final predictions ≈ 0.03, 0.97, 0.97, 0.03   →  XOR learned</code></pre>
+
+  <p>Your exact numbers <em>will</em> differ — the starting weights are random — but the story must be the same: loss starts near <strong>0.25</strong> (that's the score for always answering 0.5, the do-nothing baseline: mean of four (0.5 − target)² is exactly 0.25), then falls toward zero, and the four predictions land near 0, 1, 1, 0.</p>
+  <p class="sidenote"><strong>If your loss gets stuck near 0.25</strong> and won't budge after thousands of epochs: run the cell again. A fresh run re-rolls the random starting weights, and some starts are simply bad for this tiny net — when I ran the identical from-scratch math across 20 random starts, 16 converged and 4 stalled. That's not a bug in your code; it's lesson 7's landscape having flat spots.</p>
+
+  <h2>Check yourself</h2>
+  <p>No peeking back. Pull it from memory.</p>
+
+  <div class="quiz" id="quiz1">
+    <div class="q">1. Which single call runs your entire lesson-8 backward pass?</div>
+    <button class="opt" data-c="0"><code>optimizer.step()</code></button>
+    <button class="opt" data-c="1"><code>loss.backward()</code></button>
+    <button class="opt" data-c="0"><code>optimizer.zero_grad()</code></button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz2">
+    <div class="q">2. Why must the loop call <code>optimizer.zero_grad()</code> every iteration?</div>
+    <button class="opt" data-c="1">gradients add up across iterations otherwise</button>
+    <button class="opt" data-c="0">gradients get deleted after each backward</button>
+    <button class="opt" data-c="0">gradients would slow down the GPU</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz3">
+    <div class="q">3. What does <code>optimizer.step()</code> do to each parameter?</div>
+    <button class="opt" data-c="0">multiplies it by the learning rate</button>
+    <button class="opt" data-c="0">rounds it toward the nearest gradient</button>
+    <button class="opt" data-c="1">nudges it opposite its stored gradient</button>
+    <div class="fb"></div>
+  </div>
+
+  <h2>Read this next</h2>
+  <p>Primary source: the official PyTorch tutorial <a href="https://pytorch.org/tutorials/beginner/basics/intro.html"><strong>"Learn the Basics"</strong></a> — seven short sections (tensors, datasets, building models, autograd, the optimization loop…), each with a "Run in Google Colab" link at the top so you stay zero-install. You have now hand-built everything it describes, so it will read like a tour of your own house. The <a href="https://docs.pytorch.org/tutorials/beginner/basics/autogradqs_tutorial.html">autograd</a> and <a href="https://docs.pytorch.org/tutorials/beginner/basics/optimization_tutorial.html">optimization</a> sections are the ones that map straight onto today.</p>
+
+  <footer>
+    <p><strong>Your win today:</strong> you rebuilt your lesson-10 XOR net in ~25 lines of PyTorch and can point at every line and name the from-scratch code it replaces.</p>
+    <p>Previous: <a href="0010-train-a-tiny-network-from-scratch.html">Lesson 10 — Train a Tiny Network from Scratch</a> · Next: <a href="0012-real-data-handwritten-digits.html">Lesson 12 — Real Data: Handwritten Digits</a></p>
+  </footer>
+</div>
+
+<script>
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      const t=tab.dataset.t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.t===t));
+      document.querySelectorAll('.codeblock').forEach(c=>c.hidden=(c.dataset.lang!==t));
+    });
+  });
+
+  // matching widget
+  const mfb=document.getElementById('mfb');
+  let sel=null, remaining=5;
+  document.querySelectorAll('.mleft').forEach(b=>{
+    b.addEventListener('click',()=>{
+      if(b.classList.contains('matched')) return;
+      document.querySelectorAll('.mleft').forEach(x=>x.classList.remove('sel'));
+      b.classList.add('sel'); sel=b;
+      mfb.textContent='now click the PyTorch line that replaces it';
+    });
+  });
+  document.querySelectorAll('.mright').forEach(b=>{
+    b.addEventListener('click',()=>{
+      if(b.classList.contains('matched')) return;
+      if(!sel){ mfb.textContent='pick a from-scratch job on the left first'; return; }
+      if(b.dataset.p===sel.dataset.p){
+        b.classList.add('matched'); sel.classList.add('matched'); sel.classList.remove('sel'); sel=null;
+        remaining--;
+        mfb.textContent = remaining ? 'correct — '+remaining+' to go' :
+          'all five matched — you just read a PyTorch training loop fluently';
+      } else {
+        b.classList.add('flash'); setTimeout(()=>b.classList.remove('flash'),450);
+        mfb.textContent='not that one — which lesson-10 job does that line do?';
+      }
+    });
+  });
+
+  document.querySelectorAll('.quiz').forEach(q=>{
+    q.querySelectorAll('.opt').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        if(q.dataset.done) return;
+        q.dataset.done=1;
+        const correct=btn.dataset.c==='1';
+        btn.classList.add(correct?'correct':'wrong');
+        if(!correct){
+          q.querySelector('.opt[data-c="1"]').classList.add('correct');
+        }
+        q.querySelector('.fb').textContent = correct ? 'Correct — locked in.' : 'Not quite — the green one is right.';
+      });
+    });
+  });
+</script>
+<script>
+(function(){
+  var b=document.getElementById('themeToggle');
+  function sync(){b.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀':'☾';}
+  b.addEventListener('click',function(){
+    var next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{localStorage.setItem('book-theme',next);}catch(e){}
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

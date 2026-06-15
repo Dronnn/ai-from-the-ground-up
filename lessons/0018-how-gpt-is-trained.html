@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 18 — How GPT Is Trained</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.55; margin:0; padding:3rem 1.2rem 5rem;
+  }
+  .wrap{max-width:680px; margin:0 auto}
+  .kicker{font-variant:small-caps; letter-spacing:.08em; color:var(--accent);
+    font-size:.95rem; margin-bottom:.2rem}
+  h1{font-size:2.1rem; line-height:1.15; margin:.1rem 0 1.2rem; font-weight:600}
+  h2{font-size:1.3rem; margin:2.4rem 0 .6rem; font-weight:600}
+  p{margin:.7rem 0}
+  .lead{font-size:1.12rem; color:#33312c}
+  .formula{
+    background:var(--soft); border-left:3px solid var(--accent);
+    padding:.9rem 1.1rem; margin:1.2rem 0; font-size:1.15rem;
+    font-family:"Latin Modern Math","Cambria Math",Georgia,serif; overflow-x:auto;
+  }
+  code{font-family:"SF Mono",Menlo,Consolas,monospace; font-size:.92em;
+    background:var(--soft); padding:.1em .35em; border-radius:3px}
+  a{color:var(--accent)}
+  .sidenote{font-size:.9rem; color:#5a564c; border-top:1px solid var(--rule);
+    border-bottom:1px solid var(--rule); padding:.7rem 0; margin:1.4rem 0}
+
+  /* interactive widget */
+  .widget{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .val{font-family:"SF Mono",Menlo,monospace}
+  .row{display:grid; grid-template-columns:120px 1fr 70px; gap:.8rem; align-items:center;
+    margin:.55rem 0}
+  .row label{font-variant:small-caps; letter-spacing:.04em; color:#444}
+  input[type=range]{width:100%}
+  .lbar{display:grid; grid-template-columns:54px 1fr 64px; gap:.6rem; align-items:center; margin:.25rem 0}
+  .lbar .lbl{font-family:"SF Mono",Menlo,monospace; text-align:right; font-size:.9rem}
+  .ltrack{height:16px; background:var(--soft); border-radius:8px; overflow:hidden}
+  .lfill{height:100%; background:var(--accent)}
+  .btn{font:inherit; font-size:.9rem; font-variant:small-caps; letter-spacing:.05em;
+    border:1px solid var(--rule); background:#272521; color:#f3f0e7;
+    padding:.45rem 1rem; border-radius:6px; cursor:pointer}
+  .sampled{margin-top:.7rem; font-family:"SF Mono",Menlo,monospace; min-height:1.4em}
+
+  /* recap checklist */
+  .item{display:block; width:100%; text-align:left; border:1px solid var(--rule);
+    background:var(--paper); padding:.45rem .7rem; margin:.35rem 0; border-radius:6px;
+    cursor:pointer; font:inherit; font-size:.95rem}
+  .item:hover{background:var(--soft)}
+  .item::before{content:"○ "; color:#999}
+  .item.done{border-color:var(--good); background:#eef7f0}
+  .item.done::before{content:"● "; color:var(--good)}
+  .tally{margin-top:.8rem; padding-top:.8rem; border-top:1px dashed var(--rule); font-weight:600}
+
+  /* code */
+  .tabs{display:flex; gap:.4rem; margin:1.2rem 0 0}
+  .tab{font:inherit; font-size:.9rem; font-variant:small-caps; letter-spacing:.05em;
+    border:1px solid var(--rule); border-bottom:none; background:var(--soft);
+    padding:.45rem 1rem; border-radius:6px 6px 0 0; cursor:pointer; color:#666}
+  .tab.active{background:#272521; color:#f3f0e7}
+  .codeblock{margin:0 0 1rem; background:#272521; color:#f3f0e7; border-radius:0 6px 6px 6px;
+    padding:1rem 1.1rem; overflow-x:auto}
+  .codeblock code{background:none; color:inherit; font-size:.86rem; line-height:1.5;
+    font-family:"SF Mono",Menlo,Consolas,monospace; white-space:pre}
+
+  /* quiz */
+  .quiz{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .q{font-weight:600; margin-bottom:.6rem}
+  .opt{display:block; width:100%; text-align:left; border:1px solid var(--rule);
+    background:var(--paper); padding:.6rem .8rem; margin:.4rem 0; border-radius:6px;
+    cursor:pointer; font:inherit}
+  .opt:hover{background:var(--soft)}
+  .opt.correct{border-color:var(--good); background:#eef7f0}
+  .opt.wrong{border-color:var(--bad); background:#f9eeee}
+  .fb{margin-top:.5rem; font-size:.95rem; min-height:1.2em}
+  footer{margin-top:3rem; border-top:1px solid var(--rule); padding-top:1rem;
+    font-size:.92rem; color:#5a564c}
+
+  /* dark theme: warm sepia night */
+  html[data-theme="dark"]{color-scheme:dark;
+    --ink:#e8e3d6; --paper:#201d18; --rule:#3d382f; --accent:#c97b6f;
+    --soft:#2a2620; --good:#8fbf9c; --bad:#d98a80}
+  html[data-theme="dark"] .lead{color:#cfc9bb}
+  html[data-theme="dark"] .sidenote, html[data-theme="dark"] footer{color:#a89f8d}
+  html[data-theme="dark"] [style*="#5a564c"]{color:#a89f8d!important}
+  html[data-theme="dark"] .quiz{background:#26221c}
+  html[data-theme="dark"] .opt.correct{background:#2a3a2e}
+  html[data-theme="dark"] .opt.wrong{background:#3d2a27}
+  html[data-theme="dark"] .tab{color:#9a9183}
+  html[data-theme="dark"] .widget{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+    background:#fff; color:#1a1a1a; color-scheme:light}
+  .themetoggle{position:fixed; top:14px; right:14px; z-index:50; width:38px; height:38px;
+    border-radius:50%; border:1px solid var(--rule); background:var(--soft); color:var(--ink);
+    font-size:1rem; cursor:pointer; line-height:1; font-family:inherit}
+  .themetoggle:hover{border-color:var(--accent)}
+  @media print{.themetoggle{display:none}
+    html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+      --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a}}
+</style>
+<script>(function(){var t=localStorage.getItem('book-theme');
+if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+document.documentElement.setAttribute('data-theme',t);})()</script>
+</head>
+<body>
+<button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
+<div class="wrap">
+  <div class="kicker">AI Foundations · Lesson 18 · Phase 5 — Under the hood of GPT</div>
+  <h1>How GPT Is Trained</h1>
+  <p class="lead">Lesson 17 assembled the machine — but a freshly built transformer is like your lesson-10 net before training: 175 billion knobs full of random noise, emitting gibberish. Today, the last lesson: where the knowledge comes from (<strong>pretraining</strong>), how a text-completer is tamed into an assistant (<strong>finetuning and RLHF</strong>), what the dials in every LLM API actually do (<strong>temperature</strong>), and why the machine sometimes lies with a straight face (<strong>hallucination</strong>). None of it will be magic — every piece lands on something you've already computed.</p>
+
+  <h2>Step 1 — Pretraining: the P in GPT</h2>
+  <p>The recipe is lesson 9's training loop, fed with the internet. Take mountains of text; for every position in every snippet, the training example is: <em>context → the token that actually came next</em>. The text grades itself — no human labels needed. The loss for each prediction is one you already know by name and by hand:</p>
+  <div class="formula" style="text-align:center; font-size:1.2rem">
+    loss = −ln( p<sub>true next token</sub> )
+  </div>
+  <p>— lesson 12's <strong>cross-entropy</strong>, unchanged: be confident about the token that really came next, or pay. Then backprop (8), update (7), repeat (9), across the corpus. That's the whole intellectual content of pretraining. The rest is scale, and the scale is the story: GPT-3 was trained on "hundreds of billions of words" — about 60% filtered <a href="https://en.wikipedia.org/wiki/GPT-3">Common Crawl</a> (a crawl of the public web), plus web text, two book corpora, and Wikipedia. The compute is the part nobody's intuition survives: <a href="https://www.3blue1brown.com/lessons/mini-llm">3Blue1Brown's</a> illustration is that at one billion operations <em>per second</em>, the largest models' training would take over 100 million years. (Data centers do it in months by running astronomically wide in parallel — matrix multiplications again, lesson 17's sidenote.)</p>
+  <p>Why does next-token prediction produce <em>knowledge</em>? Because predicting well is impossible without absorbing structure. To continue "the capital of Armenia is", the weights must encode geography; to continue <code>func sigmoid(_ z: Double) -&gt;</code>, they must encode Swift's grammar. Facts, styles, languages, code idioms — all get pressed into the weights as side effects of one humble objective. And this is also why LLMs are good at <strong>coding</strong>: source code is just text with an unusually strict grammar, the public internet contains oceans of it, and a model that predicts code tokens well has been forced to internalize syntax, APIs, and the patterns of how functions get used. Your coding assistant is a next-token predictor that read more code than any human ever will.</p>
+
+  <h2>Step 2 — From autocomplete to assistant: finetuning &amp; RLHF</h2>
+  <p>A pretrained model is a <em>completer</em>, not a helper. Ask it "How do I center a view in SwiftUI?" and a raw completer might continue with… more forum questions, because that's a statistically plausible continuation of a question on the internet. Two finishing steps close the gap — here's how <a href="https://en.wikipedia.org/wiki/ChatGPT">ChatGPT</a> was made, per the public record: "the fine-tuning process involved supervised learning and reinforcement learning from human feedback (RLHF)."</p>
+  <p><strong>Supervised finetuning:</strong> more lesson-9 training, but now on a curated dataset of dialogues, where human "trainers acted as both the user and the AI assistant, providing examples of how the chatbot is expected to respond" (<a href="https://en.wikipedia.org/wiki/ChatGPT">Wikipedia</a>). Same loop, better-mannered data: the model learns the <em>shape</em> of being an assistant.</p>
+  <p><strong>RLHF</strong> (reinforcement learning from human feedback): humans rank several model answers from best to worst; those rankings train a <em>reward model</em> that scores answers automatically; then the LLM's weights are nudged toward answers the reward model likes. You can hear the lesson-6 reframe inside it: human preference becomes a number, and a number can be optimized. The result is the difference between a wild text-predictor and the polite thing you chat with.</p>
+
+  <h2>Step 3 — The dial you've seen everywhere: temperature</h2>
+  <p>Generation still ends with lesson 17's logits → softmax → dice. <strong>Temperature</strong> is one number, <code>T</code>, that divides the logits before softmax:</p>
+  <div class="formula" style="text-align:center; font-size:1.25rem">
+    probabilities = softmax( logits ⁄ T )
+  </div>
+  <p>Divide by a small T and the gaps between scores stretch — the favorite dominates. Divide by a big T and the gaps shrink — outsiders get real chances. In <a href="https://www.3blue1brown.com/lessons/gpt">3Blue1Brown's words</a>: with larger T "more weight is given to lower values, making the distribution more uniform", while with smaller T "the larger values will dominate the distribution, and in the extreme setting when T is equal to 0, all the weight goes to the maximum value" — T = 0 is exactly lesson 14's greedy trap, useful when you want deterministic answers (like code), dull when you want prose. Run it on lesson 17's verified logits:</p>
+
+  <div class="tabs">
+    <button class="tab active" data-t="swift">Swift</button>
+    <button class="tab" data-t="py">Python</button>
+  </div>
+
+  <pre class="codeblock" data-lang="swift"><code>import Foundation
+
+let candidates = ["mat", "sofa", "roof", "dog", "moon"]
+let logits     = [4.0,   2.5,    2.0,    0.5,   0.1]
+
+func softmax(_ xs: [Double]) -> [Double] {
+    let es = xs.map(exp)
+    let s = es.reduce(0, +)
+    return es.map { $0 / s }
+}
+
+for T in [0.5, 1.0, 2.0] {
+    let probs = softmax(logits.map { $0 / T })
+    let row = zip(candidates, probs).map { "\($0) " + String(format: "%.3f", $1) }
+                                    .joined(separator: "  ")
+    print("T = \(T):  \(row)")
+}</code></pre>
+
+  <pre class="codeblock" data-lang="py" hidden><code>import math
+
+candidates = ["mat", "sofa", "roof", "dog", "moon"]
+logits     = [4.0,   2.5,    2.0,    0.5,   0.1]
+
+def softmax(xs):
+    es = [math.exp(x) for x in xs]
+    s = sum(es)
+    return [e / s for e in es]
+
+for T in [0.5, 1.0, 2.0]:
+    probs = softmax([l / T for l in logits])
+    row = "  ".join(f"{c} {p:.3f}" for c, p in zip(candidates, probs))
+    print(f"T = {T}:  {row}")</code></pre>
+
+  <p>Both print <strong>exactly</strong> this:</p>
+
+  <pre class="codeblock" style="border-radius:6px"><code>T = 0.5:  mat 0.935  sofa 0.047  roof 0.017  dog 0.001  moon 0.000
+T = 1.0:  mat 0.710  sofa 0.158  roof 0.096  dog 0.021  moon 0.014
+T = 2.0:  mat 0.464  sofa 0.219  roof 0.171  dog 0.081  moon 0.066</code></pre>
+
+  <h2>Feel it: turn the dial</h2>
+  <div class="widget">
+    <div class="row"><label>temperature T</label><input id="temp" type="range" min="0.05" max="3" step="0.05" value="1"><span class="val" id="tval">1.00</span></div>
+    <div id="tbars"></div>
+    <div style="margin-top:.8rem"><button class="btn" id="tsample">sample 20 tokens</button></div>
+    <div class="sampled" id="tsamples"></div>
+  </div>
+
+  <h2>Step 4 — Why it lies: hallucination, from the mechanism</h2>
+  <p>Now you can explain LLMs' most famous flaw <em>without</em> hand-waving. The machine's only move — its <em>entire</em> repertoire — is "emit a plausible next token." It is not consulting a database and reporting lookup failures; there is no lookup. So when the context calls for a fact the weights don't reliably encode (an obscure paper, a niche API, your cousin's birthday), the most statistically plausible continuation <em>still gets generated</em> — fluent, well-formatted, and wrong. The field calls this <strong>hallucination</strong>: "a response generated by AI that contains false or misleading information presented as fact" (<a href="https://en.wikipedia.org/wiki/Hallucination_(artificial_intelligence)">Wikipedia</a>) — "plausible-sounding random falsehoods" delivered with perfect grammar. Notice it's not a bug bolted on top; it's the default behavior of a fluency machine at the edge of its knowledge. That's why serious workflows ask LLMs to cite, check, run, or verify — exactly what this book did to itself.</p>
+  <p>One more honest limit while we're here: the model only attends (lesson 16) over its <strong>context window</strong> — GPT-3's was 2,048 tokens (<a href="https://en.wikipedia.org/wiki/GPT-3">Wikipedia</a>); modern models stretch much further, but the principle stands: what's outside the window does not exist for the model. "It forgot what I said an hour ago" usually means "it slid out of the window."</p>
+
+  <h2>The capstone: train your own GPT</h2>
+  <p>You've earned the real thing. <a href="https://www.youtube.com/watch?v=kCc8FmEb1nY"><strong>Karpathy's "Let's build GPT: from scratch, in code, spelled out"</strong></a> builds and trains a small character-level transformer on Shakespeare — embeddings, position vectors, attention, blocks, cross-entropy, the loop — every one a lesson from this book, in PyTorch you can read since lesson 11. Follow it in Colab (zero install, as always), and at the end you'll watch a transformer <em>you trained</em> generate Shakespeare-ish verse. That moment is this course's true finish line.</p>
+
+  <h2>Check yourself</h2>
+  <p>No peeking back. Pull it from memory.</p>
+
+  <div class="quiz" id="quiz1">
+    <div class="q">1. What is the training objective during LLM pretraining?</div>
+    <button class="opt" data-c="0">rank several candidate answers the way humans would</button>
+    <button class="opt" data-c="1">predict each next token across mountains of text</button>
+    <button class="opt" data-c="0">translate every training sentence into many other languages</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz2">
+    <div class="q">2. What does RLHF add on top of the pretrained model?</div>
+    <button class="opt" data-c="1">weights get nudged toward answers humans rank higher</button>
+    <button class="opt" data-c="0">weights get reset before answers humans rank higher</button>
+    <button class="opt" data-c="0">weights get frozen except answers humans rank higher</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz3">
+    <div class="q">3. Why do hallucinations happen, mechanically speaking?</div>
+    <button class="opt" data-c="0">the database lookup fails and returns empty results</button>
+    <button class="opt" data-c="0">the context window deletes the true answer mid-generation</button>
+    <button class="opt" data-c="1">the model samples plausible tokens regardless of truth</button>
+    <div class="fb"></div>
+  </div>
+
+  <h2>The whole book, one breath</h2>
+  <p>A neuron multiplies, adds, squashes (1–2); layers stack it (3–5); loss, gradients, backprop, and the loop make it learn (6–9); you trained nets from scratch and in PyTorch (10–12); then text became tokens (13), prediction became generation (14), IDs became meaning-vectors (15), tokens learned to look at each other (16), it all stacked into the transformer (17), and scale plus human feedback turned it into the thing you talk to (18). Click what you can now explain to another developer:</p>
+
+  <div class="widget" id="recap">
+    <button class="item">13 · Tokens and BPE</button>
+    <button class="item">14 · Next-token prediction and sampling</button>
+    <button class="item">15 · Embeddings and meaning-geometry</button>
+    <button class="item">16 · Attention: queries, keys, values, masking</button>
+    <button class="item">17 · The transformer architecture</button>
+    <button class="item">18 · Pretraining, RLHF, temperature, hallucination</button>
+    <div class="tally" id="tally">You can explain 0 / 6</div>
+  </div>
+
+  <p>What this book deliberately did <em>not</em> cover — honest list, for your future roadmap: multimodal models (images/audio in LLMs), retrieval (RAG) and tool use, agents, and the fast-moving training tricks beyond RLHF. You now have the substrate to learn any of them without hand-waving. For "is my mental model right?" questions, the communities in <a href="../RESOURCES.md">Resources</a> are the place to test yourself against real practitioners.</p>
+
+  <footer>
+    <p><strong>Your win today:</strong> you can tell the full, true story of GPT — pretrained by next-token cross-entropy on the internet, finished by human feedback, sampled with a temperature dial, fluent always and truthful only where its weights carry the facts — and there is no step in that story you haven't computed with your own hands.</p>
+    <p>Previous: <a href="0017-the-transformer.html">Lesson 17 — The Transformer</a> · Next: <a href="0019-the-practitioners-toolbox.html">Lesson 19 — The Practitioner's Toolbox</a></p>
+  </footer>
+</div>
+
+<script>
+  const $=id=>document.getElementById(id);
+
+  // ---- temperature widget: same numbers as the verified code ----
+  const CAND=["mat","sofa","roof","dog","moon"];
+  const LOGITS=[4.0,2.5,2.0,0.5,0.1];
+  function softmax(xs){const es=xs.map(Math.exp);const s=es.reduce((a,b)=>a+b,0);return es.map(e=>e/s);}
+  function probsAt(T){return softmax(LOGITS.map(l=>l/T));}
+  function renderT(){
+    const T=+$('temp').value;
+    $('tval').textContent=T.toFixed(2);
+    const probs=probsAt(T);
+    $('tbars').innerHTML=CAND.map((c,i)=>
+      '<div class="lbar"><span class="lbl">'+c+'</span>'+
+      '<div class="ltrack"><div class="lfill" style="width:'+(probs[i]*100)+'%"></div></div>'+
+      '<span class="val">'+probs[i].toFixed(3)+'</span></div>').join('');
+  }
+  $('temp').addEventListener('input',renderT);
+  renderT();
+  $('tsample').addEventListener('click',()=>{
+    const probs=probsAt(+$('temp').value);
+    let out=[];
+    for(let k=0;k<20;k++){
+      const r=Math.random(); let c=0, pick=CAND[CAND.length-1];
+      for(let i=0;i<probs.length;i++){ c+=probs[i]; if(r<c){ pick=CAND[i]; break; } }
+      out.push(pick);
+    }
+    $('tsamples').textContent=out.join(' ');
+  });
+
+  // ---- recap checklist ----
+  const items=document.querySelectorAll('#recap .item');
+  items.forEach(it=>it.addEventListener('click',()=>{
+    it.classList.toggle('done');
+    const n=document.querySelectorAll('#recap .item.done').length;
+    $('tally').textContent = n===6
+      ? '6 / 6 — the underground of GPT is yours. Course complete.'
+      : 'You can explain '+n+' / 6';
+  }));
+</script>
+<script>
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      const t=tab.dataset.t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.t===t));
+      document.querySelectorAll('.codeblock[data-lang]').forEach(c=>c.hidden=(c.dataset.lang!==t));
+    });
+  });
+  document.querySelectorAll('.quiz').forEach(q=>{
+    q.querySelectorAll('.opt').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        if(q.dataset.done) return;
+        q.dataset.done=1;
+        const correct=btn.dataset.c==='1';
+        btn.classList.add(correct?'correct':'wrong');
+        if(!correct){
+          q.querySelector('.opt[data-c="1"]').classList.add('correct');
+        }
+        q.querySelector('.fb').textContent = correct ? 'Correct — locked in.' : 'Not quite — the green one is right.';
+      });
+    });
+  });
+</script>
+<script>
+(function(){
+  var b=document.getElementById('themeToggle');
+  function sync(){b.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀':'☾';}
+  b.addEventListener('click',function(){
+    var next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{localStorage.setItem('book-theme',next);}catch(e){}
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

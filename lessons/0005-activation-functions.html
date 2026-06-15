@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 5 — Activation Functions</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.55; margin:0; padding:3rem 1.2rem 5rem;
+  }
+  .wrap{max-width:680px; margin:0 auto}
+  .kicker{font-variant:small-caps; letter-spacing:.08em; color:var(--accent);
+    font-size:.95rem; margin-bottom:.2rem}
+  h1{font-size:2.1rem; line-height:1.15; margin:.1rem 0 1.2rem; font-weight:600}
+  h2{font-size:1.3rem; margin:2.4rem 0 .6rem; font-weight:600}
+  p{margin:.7rem 0}
+  .lead{font-size:1.12rem; color:#33312c}
+  .formula{
+    background:var(--soft); border-left:3px solid var(--accent);
+    padding:.9rem 1.1rem; margin:1.2rem 0; font-size:1.15rem;
+    font-family:"Latin Modern Math","Cambria Math",Georgia,serif; overflow-x:auto;
+  }
+  code{font-family:"SF Mono",Menlo,Consolas,monospace; font-size:.92em;
+    background:var(--soft); padding:.1em .35em; border-radius:3px}
+  a{color:var(--accent)}
+  .sidenote{font-size:.9rem; color:#5a564c; border-top:1px solid var(--rule);
+    border-bottom:1px solid var(--rule); padding:.7rem 0; margin:1.4rem 0}
+
+  /* interactive widget */
+  .widget{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .row{display:grid; grid-template-columns:90px 1fr 70px; gap:.8rem; align-items:center;
+    margin:.55rem 0}
+  .row label{font-variant:small-caps; letter-spacing:.04em; color:#444}
+  input[type=range]{width:100%}
+  .val{font-family:"SF Mono",Menlo,monospace; text-align:right}
+  .out{margin-top:1rem; padding-top:1rem; border-top:1px dashed var(--rule)}
+  .bar{height:22px; background:var(--soft); border-radius:11px; overflow:hidden; margin-top:.4rem}
+  .fill{height:100%; width:0; background:var(--accent); transition:width .12s}
+  .big{font-size:1.5rem; font-family:"SF Mono",Menlo,monospace}
+
+  /* code */
+  .tabs{display:flex; gap:.4rem; margin:1.2rem 0 0}
+  .tab{font:inherit; font-size:.9rem; font-variant:small-caps; letter-spacing:.05em;
+    border:1px solid var(--rule); border-bottom:none; background:var(--soft);
+    padding:.45rem 1rem; border-radius:6px 6px 0 0; cursor:pointer; color:#666}
+  .tab.active{background:#272521; color:#f3f0e7}
+  .codeblock{margin:0 0 1rem; background:#272521; color:#f3f0e7; border-radius:0 6px 6px 6px;
+    padding:1rem 1.1rem; overflow-x:auto}
+  .codeblock code{background:none; color:inherit; font-size:.86rem; line-height:1.5;
+    font-family:"SF Mono",Menlo,Consolas,monospace; white-space:pre}
+
+  /* quiz */
+  .quiz{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .q{font-weight:600; margin-bottom:.6rem}
+  .opt{display:block; width:100%; text-align:left; border:1px solid var(--rule);
+    background:var(--paper); padding:.6rem .8rem; margin:.4rem 0; border-radius:6px;
+    cursor:pointer; font:inherit}
+  .opt:hover{background:var(--soft)}
+  .opt.correct{border-color:var(--good); background:#eef7f0}
+  .opt.wrong{border-color:var(--bad); background:#f9eeee}
+  .fb{margin-top:.5rem; font-size:.95rem; min-height:1.2em}
+  footer{margin-top:3rem; border-top:1px solid var(--rule); padding-top:1rem;
+    font-size:.92rem; color:#5a564c}
+
+  /* function plotter (this lesson's widget) */
+  .fnbtns{display:flex; gap:.4rem; margin-bottom:.9rem; flex-wrap:wrap}
+  .fnbtn{font:inherit; font-size:.9rem; font-variant:small-caps; letter-spacing:.05em;
+    border:1px solid var(--rule); background:var(--soft); padding:.4rem 1rem;
+    border-radius:6px; cursor:pointer; color:#666}
+  .fnbtn.active{background:var(--accent); border-color:var(--accent); color:#fdfcf8}
+  #plot{width:100%; height:auto; display:block; border:1px solid var(--rule);
+    border-radius:6px; background:#fff}
+  .readout{display:flex; gap:1.6rem; flex-wrap:wrap; margin-top:.8rem;
+    font-family:"SF Mono",Menlo,monospace; font-size:.95rem}
+  .verdict{margin-top:.5rem; font-size:.95rem; min-height:1.3em}
+  .verdict.dead{color:var(--bad)} .verdict.ok{color:var(--good)}
+
+  /* dark theme: warm sepia night */
+  html[data-theme="dark"]{color-scheme:dark;
+    --ink:#e8e3d6; --paper:#201d18; --rule:#3d382f; --accent:#c97b6f;
+    --soft:#2a2620; --good:#8fbf9c; --bad:#d98a80}
+  html[data-theme="dark"] .lead{color:#cfc9bb}
+  html[data-theme="dark"] .sidenote, html[data-theme="dark"] footer,
+  html[data-theme="dark"] .phase-sub, html[data-theme="dark"] .desc,
+  html[data-theme="dark"] .sub, html[data-theme="dark"] .note{color:#a89f8d}
+  html[data-theme="dark"] [style*="#5a564c"]{color:#a89f8d!important}
+  html[data-theme="dark"] .quiz{background:#26221c}
+  html[data-theme="dark"] .opt.correct{background:#2a3a2e}
+  html[data-theme="dark"] .opt.wrong{background:#3d2a27}
+  html[data-theme="dark"] .tab{color:#9a9183}
+  /* widgets stay light: printed-figure look, keeps all verified canvas/SVG colors intact */
+  html[data-theme="dark"] .widget{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+    background:#fff; color:#1a1a1a; color-scheme:light}
+  .themetoggle{position:fixed; top:14px; right:14px; z-index:50; width:38px; height:38px;
+    border-radius:50%; border:1px solid var(--rule); background:var(--soft); color:var(--ink);
+    font-size:1rem; cursor:pointer; line-height:1; font-family:inherit}
+  .themetoggle:hover{border-color:var(--accent)}
+  @media print{.themetoggle{display:none}
+    html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+      --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a}}
+</style>
+<script>(function(){var t=localStorage.getItem('book-theme');
+if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+document.documentElement.setAttribute('data-theme',t);})()</script>
+</head>
+<body>
+<button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
+<div class="wrap">
+  <div class="kicker">AI Foundations · Lesson 5 · Phase 2 — Many neurons → a network</div>
+  <h1>Activation Functions — and Why ReLU Took Over</h1>
+  <p class="lead">Lesson 4 gave you a tower of layers: matrix, bias, repeat. Here is the uncomfortable secret — without the little squashing step between layers, that whole tower is a fraud. It computes nothing a single layer couldn't. Today you'll watch depth collapse with your own eyes, learn why one bent function rescues it, and meet the three classics: sigmoid, tanh, and ReLU — the modern default, and the one inside the digit-reading model you'll train at the end of this course.</p>
+
+  <h2>Run this first: the tower that collapses</h2>
+  <p>The experiment: build a 2-layer network but <em>skip the activation function</em> — no squash, just matrix after matrix. Then build a 1-layer network whose single matrix is <code>M = W₂·W₁</code> (the two weight matrices multiplied together). Feed both the same input <code>x = [3, 5]</code>. (Quick Lesson 3 refresher: each row of a weight matrix holds one neuron's weights, so <code>matvec(W, x)</code> computes every neuron's weighted sum at once.)</p>
+
+  <div class="tabs">
+    <button class="tab active" data-t="swift">Swift</button>
+    <button class="tab" data-t="py">Python</button>
+  </div>
+
+  <pre class="codeblock" data-lang="swift"><code>let W1 = [[2.0, -1.0],
+          [0.0,  1.0]]
+let W2 = [[ 1.0, 1.0],
+          [-2.0, 3.0]]
+let x  = [3.0, 5.0]
+
+func matvec(_ W: [[Double]], _ v: [Double]) -> [Double] {
+    W.map { row in zip(row, v).map(*).reduce(0, +) }
+}
+
+func matmat(_ A: [[Double]], _ B: [[Double]]) -> [[Double]] {
+    A.map { row in
+        (0..&lt;B[0].count).map { j in
+            (0..&lt;B.count).map { k in row[k] * B[k][j] }.reduce(0, +)
+        }
+    }
+}
+
+let twoLayers = matvec(W2, matvec(W1, x))  // layer 1, then layer 2
+let M = matmat(W2, W1)                     // merge the two matrices
+let oneLayer = matvec(M, x)                // a single layer using M
+
+print(twoLayers)  // [6.0, 13.0]
+print(oneLayer)   // [6.0, 13.0]  — identical. Depth bought nothing.
+print(M)          // [[2.0, 0.0], [-4.0, 5.0]]</code></pre>
+
+  <pre class="codeblock" data-lang="py" hidden><code>W1 = [[2.0, -1.0],
+      [0.0,  1.0]]
+W2 = [[ 1.0, 1.0],
+      [-2.0, 3.0]]
+x  = [3.0, 5.0]
+
+def matvec(W, v):
+    return [sum(W[i][j] * v[j] for j in range(len(v)))
+            for i in range(len(W))]
+
+def matmat(A, B):
+    return [[sum(A[i][k] * B[k][j] for k in range(len(B)))
+             for j in range(len(B[0]))] for i in range(len(A))]
+
+two_layers = matvec(W2, matvec(W1, x))  # layer 1, then layer 2
+M = matmat(W2, W1)                      # merge the two matrices
+one_layer = matvec(M, x)                # a single layer using M
+
+print(two_layers)  # [6.0, 13.0]
+print(one_layer)   # [6.0, 13.0]  — identical. Depth bought nothing.
+print(M)           # [[2.0, 0.0], [-4.0, 5.0]]</code></pre>
+
+  <p class="sidenote">Both routes print <code>[6.0, 13.0]</code>. Try changing <code>W1</code>, <code>W2</code>, or <code>x</code> — they will <em>always</em> agree. As <a href="https://cs231n.github.io/neural-networks-1/">CS231n</a> puts it: leave the nonlinearity out and "the two matrices could be collapsed to a single matrix." Biases don't save you either: with <code>b₁ = [1, −1]</code> and <code>b₂ = [2, 0]</code>, both routes give <code>[8.0, 8.0]</code> — the two biases just fold into one (<code>c = W₂·b₁ + b₂ = [2, −5]</code>).</p>
+
+  <h2>Name the math: linear · linear = linear</h2>
+  <p>What you just witnessed has a one-line explanation. Spelled out with our numbers, the two-layer route is:</p>
+  <div class="formula" style="text-align:center">
+    layer 1:&nbsp; h = W₁·x = [1, 5]<br>
+    layer 2:&nbsp; y = W₂·h = [6, 13]
+  </div>
+  <p>Symbols: <code>x</code> is the input vector, <code>W₁</code> and <code>W₂</code> are the two layers' weight matrices, <code>h</code> is the hidden layer's output. Now substitute <code>h</code> into the second line and regroup the parentheses — matrix multiplication lets you do that, just like <code>(2·3)·4 = 2·(3·4)</code> with ordinary numbers:</p>
+  <div class="formula" style="text-align:center">
+    y = W₂·(W₁·x) = (W₂·W₁)·x = M·x
+  </div>
+  <p><code>M = W₂·W₁</code> is one fixed matrix — exactly the <code>[[2, 0], [−4, 5]]</code> your code printed. Two layers, one layer, same machine. The professional one-liner: <strong>composing linear maps gives a linear map</strong>. Stack a hundred matrix-only layers and they still flatten into one. <a href="https://en.wikipedia.org/wiki/Activation_function">Wikipedia</a> states it the same way: with identity (do-nothing) activations, "the entire network is equivalent to a single-layer model."</p>
+  <p>A single matrix can only do straight-line things to its input — scale, rotate, tilt. It can never bend. So a no-activation network of any depth can never learn a curve, a circle, an XOR, a cat. <strong>The activation function is what buys curves.</strong> Insert a nonlinear <code>f</code> after each layer — <code>a = f(W·x + b)</code>, applied element-wise, i.e. to each neuron's <code>z</code> separately — and <code>W₂·f(W₁·x)</code> can no longer be merged, because <code>f</code> is not a matrix. As CS231n says: "the non-linearity is where we get the <em>wiggle</em>."</p>
+
+  <h2>The menu: three classic curves</h2>
+
+  <h3 style="margin:1.4rem 0 .3rem; font-size:1.05rem">① Sigmoid — the original squash</h3>
+  <div class="formula" style="text-align:center; font-size:1.25rem">
+    σ(z) = 1 / (1 + e<sup>−z</sup>) &nbsp;&nbsp;→&nbsp; range (0, 1)
+  </div>
+  <p>Your friend from Lesson 1: <code>e ≈ 2.718</code>, and the fraction bends any <code>z</code> into a smooth S between 0 and 1 — σ(0) = 0.5, σ(2) ≈ 0.881. But sigmoid has a disease: <strong>it saturates</strong>. At the far ends the S goes flat — at z = 4 the output is already 0.982 and the <em>slope</em> (how much the output moves when you nudge z) is a measly 0.018; its best slope, at z = 0, is only 0.25. Why care about slope? Training (Phase 3, coming up) works by nudging weights and watching the output respond. Where the curve is flat, nudges do nothing — the learning signal (formally, the <em>gradient</em>) dies. <a href="https://cs231n.github.io/neural-networks-1/">CS231n</a>: "when the neuron's activation saturates at either tail of 0 or 1, the gradient at these regions is almost zero."</p>
+
+  <h3 style="margin:1.6rem 0 .3rem; font-size:1.05rem">② Tanh — the centered sigmoid</h3>
+  <div class="formula" style="text-align:center; font-size:1.25rem">
+    tanh(z) = (e<sup>z</sup> − e<sup>−z</sup>) / (e<sup>z</sup> + e<sup>−z</sup>) &nbsp;&nbsp;→&nbsp; range (−1, 1)
+  </div>
+  <p>The formula looks scary; the truth is friendly: tanh is just a <em>stretched, recentered sigmoid</em> — exactly <code>tanh(z) = 2σ(2z) − 1</code> (<a href="https://cs231n.github.io/neural-networks-1/">CS231n</a>; check: 2σ(2·1) − 1 = 0.762 = tanh(1)). Its win over sigmoid: outputs are <strong>zero-centered</strong> — negative <code>z</code> gives negative output, zero gives zero — which keeps the numbers flowing between layers nicely balanced, so CS231n notes tanh "is always preferred to the sigmoid" for hidden layers. Same disease though: flat at both ends, so gradients still die out there.</p>
+
+  <h3 style="margin:1.6rem 0 .3rem; font-size:1.05rem">③ ReLU — the cheap winner</h3>
+  <div class="formula" style="text-align:center; font-size:1.25rem">
+    ReLU(z) = max(0, z) &nbsp;&nbsp;→&nbsp; range [0, ∞)
+  </div>
+  <p>Read it as code: <code>if z is positive, keep it; otherwise output 0</code>. ReLU(−3) = 0, ReLU(2.5) = 2.5. That's it — the <em>rectified linear unit</em> (the name on <a href="https://en.wikipedia.org/wiki/Rectifier_(neural_networks)">Wikipedia</a>, which calls it "one of the most popular activation functions for artificial neural networks"). Why did this trivial kink beat the elegant curves? Two reasons. <strong>Dirt cheap:</strong> no <code>e</code>, no division — Wikipedia: it "only requires comparison and addition," and CS231n adds that on whole layers it's just thresholding a matrix. <strong>No saturation for z &gt; 0:</strong> the right side is a straight line with slope exactly 1, forever — the learning signal passes through undamaged ("better gradient propagation: fewer vanishing gradient problems compared to sigmoidal activation functions" — Wikipedia). CS231n cites a famous result that ReLU accelerated a deep net's training convergence by a factor of 6 compared with sigmoid/tanh (Krizhevsky et al., the 2012 AlexNet work). The fine print: for z &lt; 0 ReLU is completely flat, so a neuron pushed deep into negative territory can stop learning entirely — the "dying ReLU" problem. In practice the speed and simplicity win anyway.</p>
+
+  <h2>Feel it: plot all three</h2>
+  <p>Drive the curves. Pick a function, drag <code>z</code>, and watch two numbers: the output <code>f(z)</code> and the <strong>slope</strong> at that point. The <span style="background:rgba(154,42,42,.12); padding:.05em .3em; border-radius:3px">shaded zones</span> mark where the slope drops below 0.05 — the flat ends where learning signals die. Notice: sigmoid and tanh are shaded at <em>both</em> ends; ReLU is shaded on its whole left half but never on the right.</p>
+
+  <div class="widget">
+    <div class="fnbtns">
+      <button class="fnbtn active" data-f="sigmoid">sigmoid</button>
+      <button class="fnbtn" data-f="tanh">tanh</button>
+      <button class="fnbtn" data-f="relu">ReLU</button>
+    </div>
+    <canvas id="plot" width="640" height="300"></canvas>
+    <div class="row" style="margin-top:.9rem"><label>z</label><input id="zs" type="range" min="-6" max="6" step="0.1" value="2"><span class="val" id="zv">2.0</span></div>
+    <div class="readout">
+      <span>f(z) = <strong id="fz">0.881</strong></span>
+      <span>slope = <strong id="dz">0.105</strong></span>
+    </div>
+    <div class="verdict ok" id="verdict">Healthy slope — nudging z moves the output. Learning flows.</div>
+  </div>
+
+  <p class="sidenote">The numbers above are the real functions, not sketches — e.g. sigmoid at z = 2 shows 0.881, tanh at 2 shows 0.964 with slope 0.071, all matching Python's <code>math</code> module to three decimals. One corner case: at exactly z = 0 ReLU's slope is undefined (the kink); software just picks 0 or 1 there (<a href="https://en.wikipedia.org/wiki/Rectifier_(neural_networks)">Wikipedia</a>). This widget shows 0.</p>
+
+  <h2>Write it in code</h2>
+  <p>All three functions are one-liners. Paste the Python into a <a href="https://colab.research.google.com">Google Colab</a> cell and run it; the Swift runs as-is in an Xcode playground. Both print the identical table below — compare it against the widget.</p>
+
+  <div class="tabs">
+    <button class="tab active" data-t="swift">Swift</button>
+    <button class="tab" data-t="py">Python</button>
+  </div>
+
+  <pre class="codeblock" data-lang="swift"><code>import Foundation
+
+func sigmoid(_ z: Double) -> Double { 1 / (1 + exp(-z)) }
+func relu(_ z: Double) -> Double { max(0, z) }
+// tanh ships with Foundation
+
+for z in [-3.0, -1.0, 0.0, 1.0, 3.0] {
+    print(String(format: "z=%+.1f  sigmoid=%.3f  tanh=%+.3f  relu=%.1f",
+                 z, sigmoid(z), tanh(z), relu(z)))
+}
+// z=-3.0  sigmoid=0.047  tanh=-0.995  relu=0.0
+// z=-1.0  sigmoid=0.269  tanh=-0.762  relu=0.0
+// z=+0.0  sigmoid=0.500  tanh=+0.000  relu=0.0
+// z=+1.0  sigmoid=0.731  tanh=+0.762  relu=1.0
+// z=+3.0  sigmoid=0.953  tanh=+0.995  relu=3.0</code></pre>
+
+  <pre class="codeblock" data-lang="py" hidden><code>import math
+
+def sigmoid(z): return 1 / (1 + math.exp(-z))
+def relu(z):    return max(0.0, z)
+# tanh ships with the math module
+
+for z in [-3.0, -1.0, 0.0, 1.0, 3.0]:
+    print(f"z={z:+.1f}  sigmoid={sigmoid(z):.3f}  "
+          f"tanh={math.tanh(z):+.3f}  relu={relu(z):.1f}")
+
+# z=-3.0  sigmoid=0.047  tanh=-0.995  relu=0.0
+# z=-1.0  sigmoid=0.269  tanh=-0.762  relu=0.0
+# z=+0.0  sigmoid=0.500  tanh=+0.000  relu=0.0
+# z=+1.0  sigmoid=0.731  tanh=+0.762  relu=1.0
+# z=+3.0  sigmoid=0.953  tanh=+0.995  relu=3.0</code></pre>
+
+  <p>Read the table like a story: sigmoid squeezes everything into (0, 1) and is already 0.953 at z = 3; tanh mirrors it around zero in (−1, 1); ReLU zeroes the negatives and passes positives straight through, unbounded.</p>
+
+  <h2>Who goes where in a real network</h2>
+  <p>Don't retire the sigmoid — reassign it. <strong>Hidden layers: ReLU.</strong> That's the modern default; <a href="https://cs231n.github.io/neural-networks-1/">CS231n</a>'s blunt advice is simply "Use the ReLU non-linearity." <strong>Output layer: it depends on the question.</strong> When the network must answer with a probability — "is this a cat, 0 to 1?" — sigmoid's (0, 1) range is exactly the right shape, so it still lives at the output. Saturation matters less there because it's the last stop: no deeper layers are waiting for a learning signal to pass through. You'll use both in Phase 4: sigmoid throughout the tiny net you build from scratch (one function keeps the math gentle), then ReLU in the hidden layer of the digit-reading model that ends the course.</p>
+
+  <h2>Check yourself</h2>
+  <p>No peeking back. Pull it from memory.</p>
+
+  <div class="quiz" id="quiz1">
+    <div class="q">1. What happens when you stack layers with no activation in between?</div>
+    <button class="opt" data-c="1">the network collapses into one single linear layer</button>
+    <button class="opt" data-c="0">the network slowly explodes into many separate layers</button>
+    <button class="opt" data-c="0">the network always outputs zero for every input</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz2">
+    <div class="q">2. Why do learning signals die at the sigmoid's far ends?</div>
+    <button class="opt" data-c="0">the value of the curve is almost zero</button>
+    <button class="opt" data-c="0">the input of the curve is almost zero</button>
+    <button class="opt" data-c="1">the slope of the curve is almost zero</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz3">
+    <div class="q">3. Which activation is the modern default for hidden layers?</div>
+    <button class="opt" data-c="0">sigmoid, since it is smooth with a bounded range</button>
+    <button class="opt" data-c="1">ReLU, since it is cheap with no saturating top</button>
+    <button class="opt" data-c="0">tanh, since it is centered with a bounded range</button>
+    <div class="fb"></div>
+  </div>
+
+  <h2>Read this next</h2>
+  <p>Primary source: <a href="https://cs231n.github.io/neural-networks-1/"><strong>CS231n — Neural Networks Part 1: activation functions</strong></a> (Stanford's course notes). Read the "Commonly used activation functions" section — every claim in this lesson is in there, plus a few exotic cousins (Leaky ReLU, Maxout) you can now understand. It's blunt, practical, and written by people who train real networks.</p>
+
+  <footer>
+    <p><strong>Your win today:</strong> you can explain why a network needs nonlinearity at all — without it any depth collapses to one matrix — and you can name what sigmoid, tanh, and ReLU each squash and where each one belongs.</p>
+    <p>Previous: <a href="0004-stacking-layers-the-forward-pass.html">Lesson 4 — Stacking Layers: the Forward Pass</a> · Next: <a href="0006-loss-measuring-wrong.html">Lesson 6 — Loss: Measuring "How Wrong"</a></p>
+  </footer>
+</div>
+
+<script>
+  const $=id=>document.getElementById(id);
+
+  // ---- function plotter ----
+  const sig=z=>1/(1+Math.exp(-z));
+  const FNS={
+    sigmoid:{f:sig, d:z=>{const s=sig(z); return s*(1-s);}, yMin:-0.25, yMax:1.25, marks:[0.5,1]},
+    tanh:{f:Math.tanh, d:z=>{const t=Math.tanh(z); return 1-t*t;}, yMin:-1.4, yMax:1.4, marks:[1,-1]},
+    relu:{f:z=>Math.max(0,z), d:z=>z>0?1:0, yMin:-1, yMax:6.5, marks:[2,4,6]}
+  };
+  const ZMIN=-6, ZMAX=6, FLAT=0.05;
+  let cur='sigmoid';
+  const cv=$('plot'), ctx=cv.getContext('2d');
+
+  function draw(){
+    const {f,d,yMin,yMax,marks}=FNS[cur], W=cv.width, H=cv.height;
+    const X=z=>(z-ZMIN)/(ZMAX-ZMIN)*W;
+    const Y=y=>H-(y-yMin)/(yMax-yMin)*H;
+    ctx.clearRect(0,0,W,H);
+
+    // shade flat zones (slope below FLAT)
+    ctx.fillStyle='rgba(154,42,42,.10)';
+    for(let px=0;px<W;px++){
+      const z=ZMIN+(px/W)*(ZMAX-ZMIN);
+      if(d(z)<FLAT) ctx.fillRect(px,0,1,H);
+    }
+
+    // axes
+    ctx.strokeStyle='#d8d4c8'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(0,Y(0)); ctx.lineTo(W,Y(0)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(X(0),0); ctx.lineTo(X(0),H); ctx.stroke();
+
+    // dashed guide lines + labels
+    ctx.setLineDash([4,4]); ctx.fillStyle='#5a564c';
+    ctx.font='12px Menlo, monospace';
+    marks.forEach(m=>{
+      ctx.beginPath(); ctx.moveTo(0,Y(m)); ctx.lineTo(W,Y(m)); ctx.stroke();
+      ctx.fillText(String(m), 6, Y(m)-4);
+    });
+    ctx.setLineDash([]);
+    ctx.fillText('z', W-14, Y(0)-6);
+
+    // curve
+    ctx.strokeStyle='#7a1f1f'; ctx.lineWidth=2.2;
+    ctx.beginPath();
+    for(let px=0;px<=W;px++){
+      const z=ZMIN+(px/W)*(ZMAX-ZMIN), y=Y(f(z));
+      px===0?ctx.moveTo(px,y):ctx.lineTo(px,y);
+    }
+    ctx.stroke();
+
+    // marker dot at current z
+    const z=+$('zs').value;
+    ctx.fillStyle='#7a1f1f';
+    ctx.beginPath(); ctx.arc(X(z),Y(f(z)),5.5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fdfcf8';
+    ctx.beginPath(); ctx.arc(X(z),Y(f(z)),2.2,0,Math.PI*2); ctx.fill();
+  }
+
+  function readout(){
+    const {f,d}=FNS[cur], z=+$('zs').value, slope=d(z);
+    $('zv').textContent=z.toFixed(1);
+    $('fz').textContent=f(z).toFixed(3);
+    $('dz').textContent=slope.toFixed(3);
+    const v=$('verdict'), dead=slope<FLAT;
+    v.textContent=dead
+      ? 'Flat zone — nudging z barely moves the output. The learning signal is nearly dead here.'
+      : 'Healthy slope — nudging z moves the output. Learning flows.';
+    v.className='verdict '+(dead?'dead':'ok');
+    draw();
+  }
+
+  document.querySelectorAll('.fnbtn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      cur=btn.dataset.f;
+      document.querySelectorAll('.fnbtn').forEach(b=>b.classList.toggle('active',b===btn));
+      readout();
+    });
+  });
+  $('zs').addEventListener('input',readout);
+  readout();
+
+  // ---- code tabs ----
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      const t=tab.dataset.t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.t===t));
+      document.querySelectorAll('.codeblock').forEach(c=>c.hidden=(c.dataset.lang!==t));
+    });
+  });
+
+  // ---- quiz ----
+  document.querySelectorAll('.quiz').forEach(q=>{
+    q.querySelectorAll('.opt').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        if(q.dataset.done) return;
+        q.dataset.done=1;
+        const correct=btn.dataset.c==='1';
+        btn.classList.add(correct?'correct':'wrong');
+        if(!correct){
+          q.querySelector('.opt[data-c="1"]').classList.add('correct');
+        }
+        q.querySelector('.fb').textContent = correct ? 'Correct — locked in.' : 'Not quite — the green one is right.';
+      });
+    });
+  });
+</script>
+<script>
+(function(){
+  var b=document.getElementById('themeToggle');
+  function sync(){b.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀':'☾';}
+  b.addEventListener('click',function(){
+    var next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{localStorage.setItem('book-theme',next);}catch(e){}
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

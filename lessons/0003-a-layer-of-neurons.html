@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 3 — A Layer of Neurons — Enter the Vector</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.55; margin:0; padding:3rem 1.2rem 5rem;
+  }
+  .wrap{max-width:680px; margin:0 auto}
+  .kicker{font-variant:small-caps; letter-spacing:.08em; color:var(--accent);
+    font-size:.95rem; margin-bottom:.2rem}
+  h1{font-size:2.1rem; line-height:1.15; margin:.1rem 0 1.2rem; font-weight:600}
+  h2{font-size:1.3rem; margin:2.4rem 0 .6rem; font-weight:600}
+  p{margin:.7rem 0}
+  .lead{font-size:1.12rem; color:#33312c}
+  .formula{
+    background:var(--soft); border-left:3px solid var(--accent);
+    padding:.9rem 1.1rem; margin:1.2rem 0; font-size:1.15rem;
+    font-family:"Latin Modern Math","Cambria Math",Georgia,serif; overflow-x:auto;
+  }
+  code{font-family:"SF Mono",Menlo,Consolas,monospace; font-size:.92em;
+    background:var(--soft); padding:.1em .35em; border-radius:3px}
+  a{color:var(--accent)}
+  .sidenote{font-size:.9rem; color:#5a564c; border-top:1px solid var(--rule);
+    border-bottom:1px solid var(--rule); padding:.7rem 0; margin:1.4rem 0}
+
+  /* interactive widget */
+  .widget{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .row{display:grid; grid-template-columns:90px 1fr 70px; gap:.8rem; align-items:center;
+    margin:.55rem 0}
+  .row label{font-variant:small-caps; letter-spacing:.04em; color:#444}
+  input[type=range]{width:100%}
+  .val{font-family:"SF Mono",Menlo,monospace; text-align:right}
+  .out{margin-top:1rem; padding-top:1rem; border-top:1px dashed var(--rule)}
+  .bar{height:22px; background:var(--soft); border-radius:11px; overflow:hidden; margin-top:.4rem}
+  .fill{height:100%; width:0; background:var(--accent); transition:width .12s}
+  .big{font-size:1.5rem; font-family:"SF Mono",Menlo,monospace}
+
+  /* layer widget (lesson 3) */
+  .mrow{display:flex; gap:.45rem; align-items:center; margin:.4rem 0;
+    padding:.3rem .45rem; border-radius:6px; flex-wrap:wrap; transition:background .12s}
+  .mrow .wlab{font-variant:small-caps; letter-spacing:.04em; color:#444;
+    width:92px; flex:none; font-size:.92rem}
+  .mrow input{width:62px; font-family:"SF Mono",Menlo,monospace; font-size:.9rem;
+    padding:.28rem .3rem; border:1px solid var(--rule); border-radius:4px;
+    background:var(--paper); text-align:right}
+  .bsep{color:#999}
+  .neu{padding:.55rem .6rem; border-radius:6px; margin:.5rem 0; transition:background .12s}
+  .exp{font-family:"SF Mono",Menlo,monospace; font-size:.8rem; color:#444;
+    overflow-x:auto; white-space:nowrap}
+  .hl{background:var(--soft); outline:1px solid var(--rule)}
+
+  /* code */
+  .tabs{display:flex; gap:.4rem; margin:1.2rem 0 0}
+  .tab{font:inherit; font-size:.9rem; font-variant:small-caps; letter-spacing:.05em;
+    border:1px solid var(--rule); border-bottom:none; background:var(--soft);
+    padding:.45rem 1rem; border-radius:6px 6px 0 0; cursor:pointer; color:#666}
+  .tab.active{background:#272521; color:#f3f0e7}
+  .codeblock{margin:0 0 1rem; background:#272521; color:#f3f0e7; border-radius:0 6px 6px 6px;
+    padding:1rem 1.1rem; overflow-x:auto}
+  .codeblock code{background:none; color:inherit; font-size:.86rem; line-height:1.5;
+    font-family:"SF Mono",Menlo,Consolas,monospace; white-space:pre}
+
+  /* quiz */
+  .quiz{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .q{font-weight:600; margin-bottom:.6rem}
+  .opt{display:block; width:100%; text-align:left; border:1px solid var(--rule);
+    background:var(--paper); padding:.6rem .8rem; margin:.4rem 0; border-radius:6px;
+    cursor:pointer; font:inherit}
+  .opt:hover{background:var(--soft)}
+  .opt.correct{border-color:var(--good); background:#eef7f0}
+  .opt.wrong{border-color:var(--bad); background:#f9eeee}
+  .fb{margin-top:.5rem; font-size:.95rem; min-height:1.2em}
+  footer{margin-top:3rem; border-top:1px solid var(--rule); padding-top:1rem;
+    font-size:.92rem; color:#5a564c}
+
+  /* dark theme: warm sepia night */
+  html[data-theme="dark"]{color-scheme:dark;
+    --ink:#e8e3d6; --paper:#201d18; --rule:#3d382f; --accent:#c97b6f;
+    --soft:#2a2620; --good:#8fbf9c; --bad:#d98a80}
+  html[data-theme="dark"] .lead{color:#cfc9bb}
+  html[data-theme="dark"] .sidenote, html[data-theme="dark"] footer,
+  html[data-theme="dark"] .phase-sub, html[data-theme="dark"] .desc,
+  html[data-theme="dark"] .sub, html[data-theme="dark"] .note{color:#a89f8d}
+  html[data-theme="dark"] [style*="#5a564c"]{color:#a89f8d!important}
+  html[data-theme="dark"] .quiz{background:#26221c}
+  html[data-theme="dark"] .opt.correct{background:#2a3a2e}
+  html[data-theme="dark"] .opt.wrong{background:#3d2a27}
+  html[data-theme="dark"] .tab{color:#9a9183}
+  /* widgets stay light: printed-figure look, keeps all verified canvas/SVG colors intact */
+  html[data-theme="dark"] .widget{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+    background:#fff; color:#1a1a1a; color-scheme:light}
+  .themetoggle{position:fixed; top:14px; right:14px; z-index:50; width:38px; height:38px;
+    border-radius:50%; border:1px solid var(--rule); background:var(--soft); color:var(--ink);
+    font-size:1rem; cursor:pointer; line-height:1; font-family:inherit}
+  .themetoggle:hover{border-color:var(--accent)}
+  @media print{.themetoggle{display:none}
+    html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+      --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a}}
+</style>
+<script>(function(){var t=localStorage.getItem('book-theme');
+if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+document.documentElement.setAttribute('data-theme',t);})()</script>
+</head>
+<body>
+<button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
+<div class="wrap">
+  <div class="kicker">AI Foundations · Lesson 3 · Phase 2 — Many neurons → a network</div>
+  <h1>A Layer of Neurons — Enter the Vector</h1>
+  <p class="lead">In Lesson 1 you built one neuron. A real network — the kind you'll train at the end of this course — uses thousands, arranged in <strong>layers</strong>. Here's the relieving secret: a layer contains <em>zero</em> new math. It's the Lesson-1 neuron copy-pasted, plus a tidier way to write the pile down. Master that notation today and every ML paper and library suddenly reads like code.</p>
+
+  <h2>A layer = several neurons reading the same inputs</h2>
+  <p>Picture your Lesson-1 neuron: inputs in, weighted sum <code>z</code>, squash with σ, activation out. Now put a <em>second</em> neuron right next to it and feed it the <strong>exact same inputs</strong>. That pair is a <strong>layer</strong>: a group of neurons that all look at the same inputs, but each has its <em>own</em> weights and its <em>own</em> bias — so each computes its own activation. One neuron might fire on these inputs while its neighbor stays dark. <span class="sidenote">Why bother? One sigmoid neuron outputs one number — one opinion. A layer outputs a whole <em>list</em> of opinions about the same inputs, and that list becomes the input for the next layer. Stacking layers is <a href="0004-stacking-layers-the-forward-pass.html">Lesson 4</a>; today we nail one layer cold.</span></p>
+
+  <h2>Feel it: drive a whole layer</h2>
+  <p>Below is a layer of <strong>2 neurons</strong> reading <strong>3 shared inputs</strong>. Every box is editable. Each output line shows the full arithmetic, term by term — exactly the Lesson-1 recipe, once per neuron. Hover over a weights row (or a result) to see which neuron it belongs to. Try making neuron 2 fire harder than neuron 1.</p>
+
+  <div class="widget" id="layerw">
+    <div class="mrow"><span class="wlab">inputs x</span>
+      <input id="lx0" type="number" step="0.1" value="0.5">
+      <input id="lx1" type="number" step="0.1" value="-1.0">
+      <input id="lx2" type="number" step="0.1" value="2.0">
+      <span class="bsep">← shared by both neurons</span>
+    </div>
+    <div class="mrow" data-r="0"><span class="wlab">neuron 1 · w</span>
+      <input id="lw00" type="number" step="0.1" value="1.0">
+      <input id="lw01" type="number" step="0.1" value="-2.0">
+      <input id="lw02" type="number" step="0.1" value="0.5">
+      <span class="bsep">b₁</span>
+      <input id="lb0" type="number" step="0.1" value="-1.5">
+    </div>
+    <div class="mrow" data-r="1"><span class="wlab">neuron 2 · w</span>
+      <input id="lw10" type="number" step="0.1" value="0.5">
+      <input id="lw11" type="number" step="0.1" value="1.0">
+      <input id="lw12" type="number" step="0.1" value="-1.0">
+      <span class="bsep">b₂</span>
+      <input id="lb1" type="number" step="0.1" value="0.0">
+    </div>
+    <div class="out">
+      <div class="neu" data-r="0">
+        <div class="exp" id="exp0"></div>
+        <div style="margin-top:.25rem">a₁ = σ(z₁) = <span class="big" id="av0">…</span></div>
+        <div class="bar"><div class="fill" id="fill0"></div></div>
+      </div>
+      <div class="neu" data-r="1">
+        <div class="exp" id="exp1"></div>
+        <div style="margin-top:.25rem">a₂ = σ(z₂) = <span class="big" id="av1">…</span></div>
+        <div class="bar"><div class="fill" id="fill1"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Do it by hand, digit by digit</h2>
+  <p>Lock in the widget's starting numbers on paper — this is today's win. Inputs <code>x = [0.5, −1.0, 2.0]</code>. Neuron 1 has weights <code>[1.0, −2.0, 0.5]</code> and bias <code>−1.5</code>. Pure Lesson-1 arithmetic:</p>
+  <div class="formula" style="font-size:1.05rem">
+    1.0 × 0.5 = 0.50<br>
+    (−2.0) × (−1.0) = +2.00<br>
+    0.5 × 2.0 = +1.00<br>
+    weighted sum so far: 0.50 + 2.00 + 1.00 = 3.50<br>
+    z₁ = 3.50 + (−1.5) = <strong>2.00</strong> &nbsp;→&nbsp; a₁ = σ(2.00) ≈ <strong>0.881</strong>
+  </div>
+  <p>Neuron 2 reads the <em>same</em> <code>x</code> but owns different weights <code>[0.5, 1.0, −1.0]</code> and bias <code>0.0</code>:</p>
+  <div class="formula" style="font-size:1.05rem">
+    0.5 × 0.5 = 0.25<br>
+    1.0 × (−1.0) = −1.00<br>
+    (−1.0) × 2.0 = −2.00<br>
+    weighted sum so far: 0.25 − 1.00 − 2.00 = −2.75<br>
+    z₂ = −2.75 + 0.0 = <strong>−2.75</strong> &nbsp;→&nbsp; a₂ = σ(−2.75) ≈ <strong>0.060</strong>
+  </div>
+  <p>So the layer turns the list <code>[0.5, −1.0, 2.0]</code> into the list <code>[0.881, 0.060]</code>: neuron 1 lights up, neuron 2 stays dark. Three inputs in, two activations out. That's all a layer ever does.</p>
+
+  <h2>Write it in code</h2>
+  <p>The whole layer is one loop around your Lesson-1 neuron: <em>for each neuron, take its weight row, dot it with x, add its bias, squash.</em> Paste the Python into <a href="https://colab.research.google.com">Google Colab</a> and run it — you should see <code>[0.8807970779778823, 0.060086650174007626]</code>, the same 0.881 and 0.060 from your hand computation above. The Swift runs as-is in a playground.</p>
+
+  <div class="tabs">
+    <button class="tab active" data-t="swift">Swift</button>
+    <button class="tab" data-t="py">Python</button>
+  </div>
+
+  <pre class="codeblock" data-lang="swift"><code>import Foundation
+
+func sigmoid(_ z: Double) -> Double {
+    1 / (1 + exp(-z))
+}
+
+func layer(x: [Double], W: [[Double]], b: [Double]) -> [Double] {
+    // one activation per row of W: dot(row, x) + bias, then squash
+    var a: [Double] = []
+    for n in 0..&lt;W.count {
+        var z = b[n]
+        for i in 0..&lt;x.count {
+            z += W[n][i] * x[i]
+        }
+        a.append(sigmoid(z))
+    }
+    return a
+}
+
+let x = [0.5, -1.0, 2.0]
+let W = [[1.0, -2.0,  0.5],   // neuron 1's weights
+         [0.5,  1.0, -1.0]]   // neuron 2's weights
+let b = [-1.5, 0.0]
+
+print(layer(x: x, W: W, b: b))
+// [0.8807970779778823, 0.060086650174007626]</code></pre>
+
+  <pre class="codeblock" data-lang="py" hidden><code>import math
+
+def sigmoid(z):
+    return 1 / (1 + math.exp(-z))
+
+def layer(x, W, b):
+    # one activation per row of W: dot(row, x) + bias, then squash
+    a = []
+    for row, bias in zip(W, b):
+        z = bias
+        for w, xi in zip(row, x):
+            z += w * xi
+        a.append(sigmoid(z))
+    return a
+
+x = [0.5, -1.0, 2.0]
+W = [[1.0, -2.0,  0.5],   # neuron 1's weights
+     [0.5,  1.0, -1.0]]   # neuron 2's weights
+b = [-1.5, 0.0]
+
+print(layer(x, W, b))
+# [0.8807970779778823, 0.060086650174007626]</code></pre>
+
+  <p class="sidenote">Look at <code>W</code> in the code: it's an array of arrays — <code>[[Double]]</code>. Each inner array is one neuron's weights. You just met a <strong>matrix</strong>: a grid of numbers, here 2 rows × 3 columns. That's the only new object today, and you've already programmed with it a hundred times.</p>
+
+  <h2>The notation — three ways to write a layer</h2>
+  <p>Same trick as Lesson 1: one idea, three levels of shorthand. The only news is bookkeeping — with several neurons, each weight needs <em>two</em> labels: <code>w₂₃</code> means "neuron <strong>2</strong>'s weight for input <strong>3</strong>" — first index picks the neuron (the row), second picks the input (the column). That row-then-column order is the standard convention (<a href="http://neuralnetworksanddeeplearning.com/chap2.html">Nielsen, ch. 2</a>).</p>
+
+  <h3 style="margin:1.4rem 0 .3rem; font-size:1.05rem">① The easy way — every neuron spelled out</h3>
+  <div class="formula" style="text-align:center; font-size:1.15rem">
+    z₁ = w₁₁·x₁ + w₁₂·x₂ + w₁₃·x₃ + b₁ &nbsp;&nbsp; a₁ = σ(z₁)<br>
+    z₂ = w₂₁·x₁ + w₂₂·x₂ + w₂₃·x₃ + b₂ &nbsp;&nbsp; a₂ = σ(z₂)
+  </div>
+  <p>Two copies of the Lesson-1 formula, one per neuron. Note what's shared and what isn't: the <code>x</code>'s appear in both lines (same inputs!), but every <code>w</code> and <code>b</code> belongs to one neuron only.</p>
+
+  <h3 style="margin:1.6rem 0 .3rem; font-size:1.05rem">② The compact way — one line per layer, with Σ</h3>
+  <p>Writing a line per neuron dies at 100 neurons. So: pick any neuron and call its number <code>j</code> (the outer loop), and let <code>k</code> run over the inputs (the inner loop — your Lesson-1 Σ):</p>
+  <div class="formula" style="text-align:center; font-size:1.25rem">
+    a<sub>j</sub> = σ( Σ<sub style="font-size:.7em">k</sub>&nbsp;w<sub>jk</sub>·x<sub>k</sub> + b<sub>j</sub> )
+  </div>
+  <p>Read it as nested loops: <em>for each neuron j: for each input k, add w[j][k]·x[k]; then add b[j]; squash.</em> That is literally the double <code>for</code> in the code above — this exact equation, with the same <code>j</code>,<code>k</code> indexing, is Equation 23 in <a href="http://neuralnetworksanddeeplearning.com/chap2.html">Nielsen's chapter 2</a>.</p>
+
+  <h3 style="margin:1.6rem 0 .3rem; font-size:1.05rem">③ The pro way — a matrix times a vector</h3>
+  <p>Now the form every paper and every library uses. Stack the weight rows into the matrix <strong>W</strong>, the biases into a vector <strong>b</strong>, and write the entire layer in five symbols:</p>
+  <div class="formula" style="text-align:center; font-size:1.3rem">
+    <strong>a</strong> = σ( W·<strong>x</strong> + <strong>b</strong> )
+  </div>
+  <p>Symbol by symbol: <strong>x</strong> is the input vector (a plain list, your <code>[Double]</code>); <strong>W</strong> is the weight matrix, <em>one row per neuron, one column per input</em>; <strong>b</strong> is the bias vector, one entry per neuron; and σ acts <strong>element-wise</strong> — a new term meaning "apply it to each entry of the list separately", so σ([2.0, −2.75]) = [σ(2.0), σ(−2.75)]. Both <a href="https://www.3blue1brown.com/lessons/neural-networks">3Blue1Brown</a> ("each row of this matrix corresponds to all the connections between neurons in the first layer and a particular neuron in the next layer") and <a href="http://neuralnetworksanddeeplearning.com/chap2.html">Nielsen</a> (Equation 25) write a layer exactly this way. With our numbers:</p>
+  <div class="formula"><span style="display:block; font-family:'SF Mono',Menlo,Consolas,monospace; white-space:pre; font-size:.9rem; line-height:1.5">W = ⎡ 1.0  -2.0   0.5 ⎤      x = ⎡  0.5 ⎤      b = ⎡ -1.5 ⎤
+    ⎣ 0.5   1.0  -1.0 ⎦          ⎢ -1.0 ⎥          ⎣  0.0 ⎦
+                                 ⎣  2.0 ⎦
+
+a = σ⎡  2.00 ⎤ = ⎡ σ(2.00)  ⎤ = ⎡ 0.881 ⎤
+     ⎣ -2.75 ⎦   ⎣ σ(-2.75) ⎦   ⎣ 0.060 ⎦</span></div>
+  <p>And here is the entire mystery of <strong>matrix·vector multiplication</strong>, demystified in one sentence: <em>output entry j of W·x is the dot product of row j with x</em> — i.e. one Lesson-1 neuron. A matrix times a vector isn't a new operation; it's "run every row's neuron" written as a single symbol. When you read <code>W·x + b</code> in a paper from now on, you should hear: <em>a layer of neurons, each row taking its weighted sum</em>.</p>
+
+  <div class="sidenote"><strong>Shape check — your new superpower.</strong> Our W is 2×3 (2 neurons × 3 inputs), x has 3 entries, b and the output a have 2. The pattern: an (n×m) matrix eats a vector of m and emits a vector of n. Checking shapes like this is how ML engineers catch bugs before running anything — get the habit now.</div>
+
+  <h2>Check yourself</h2>
+  <p>No peeking back. Pull it from memory.</p>
+
+  <div class="quiz" id="quiz1">
+    <div class="q">1. Inside one layer, what do all the neurons have in common?</div>
+    <button class="opt" data-c="1">they all read the same inputs</button>
+    <button class="opt" data-c="0">they all use the same weights</button>
+    <button class="opt" data-c="0">they all add the same bias</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz2">
+    <div class="q">2. One row of the weight matrix W holds:</div>
+    <button class="opt" data-c="0">every bias in the current layer</button>
+    <button class="opt" data-c="1">the weights of one single neuron</button>
+    <button class="opt" data-c="0">one weight from every layer neuron</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz3">
+    <div class="q">3. In a = σ(W·x + b), the σ is applied:</div>
+    <button class="opt" data-c="0">to only the largest result entry</button>
+    <button class="opt" data-c="0">to W before it multiplies x</button>
+    <button class="opt" data-c="1">to each entry of the result</button>
+    <div class="fb"></div>
+  </div>
+
+  <h2>Watch this next</h2>
+  <p>Primary source: <a href="https://www.3blue1brown.com/lessons/neural-networks"><strong>"But what is a Neural Network?" by 3Blue1Brown</strong></a> — yes, the same video as Lesson 1, but watch it again now and notice the part you skimmed past before: the moment the weights organize into a matrix and the whole layer collapses into σ(W·a + b). It will land completely differently this time. For a text version of today's notation, the "warm up" section of <a href="http://neuralnetworksanddeeplearning.com/chap2.html">Nielsen's chapter 2</a> covers exactly these equations.</p>
+
+  <footer>
+    <p><strong>Your win today:</strong> you computed a full layer — 3 inputs → 2 neurons — by hand and in code, and saw that the professional notation a = σ(W·x + b) is nothing but your Lesson-1 neuron repeated, one matrix row at a time.</p>
+    <p>Previous: <a href="0002-the-neuron-as-decision-maker.html">Lesson 2 — The Neuron as Decision-Maker</a> · Next: <a href="0004-stacking-layers-the-forward-pass.html">Lesson 4 — Stacking Layers: the Forward Pass</a></p>
+  </footer>
+</div>
+
+<script>
+  const $=id=>document.getElementById(id);
+  const sig=z=>1/(1+Math.exp(-z));
+  const get=id=>+$(id).value||0;
+  const fmt=v=>v<0?'('+v.toFixed(1)+')':v.toFixed(1);
+  const subs=['₁','₂'];
+  function updateLayer(){
+    const x=[get('lx0'),get('lx1'),get('lx2')];
+    for(let r=0;r<2;r++){
+      const b=get('lb'+r);
+      let z=b; const terms=[];
+      for(let i=0;i<3;i++){
+        const w=get('lw'+r+i);
+        z+=w*x[i];
+        terms.push(fmt(w)+'×'+fmt(x[i]));
+      }
+      const a=sig(z);
+      $('exp'+r).textContent='z'+subs[r]+' = '+terms.join(' + ')+' + '+fmt(b)+' = '+z.toFixed(2);
+      $('av'+r).textContent=a.toFixed(3);
+      $('fill'+r).style.width=(a*100)+'%';
+    }
+  }
+  document.querySelectorAll('#layerw input').forEach(el=>el.addEventListener('input',updateLayer));
+  updateLayer();
+
+  document.querySelectorAll('#layerw [data-r]').forEach(el=>{
+    el.addEventListener('mouseenter',()=>{
+      document.querySelectorAll('#layerw [data-r="'+el.dataset.r+'"]')
+        .forEach(e=>e.classList.add('hl'));
+    });
+    el.addEventListener('mouseleave',()=>{
+      document.querySelectorAll('#layerw .hl').forEach(e=>e.classList.remove('hl'));
+    });
+  });
+
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      const t=tab.dataset.t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.t===t));
+      document.querySelectorAll('.codeblock').forEach(c=>c.hidden=(c.dataset.lang!==t));
+    });
+  });
+
+  document.querySelectorAll('.quiz').forEach(q=>{
+    q.querySelectorAll('.opt').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        if(q.dataset.done) return;
+        q.dataset.done=1;
+        const correct=btn.dataset.c==='1';
+        btn.classList.add(correct?'correct':'wrong');
+        if(!correct){
+          q.querySelector('.opt[data-c="1"]').classList.add('correct');
+        }
+        q.querySelector('.fb').textContent = correct ? 'Correct — locked in.' : 'Not quite — the green one is right.';
+      });
+    });
+  });
+</script>
+<script>
+(function(){
+  var b=document.getElementById('themeToggle');
+  function sync(){b.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀':'☾';}
+  b.addEventListener('click',function(){
+    var next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{localStorage.setItem('book-theme',next);}catch(e){}
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

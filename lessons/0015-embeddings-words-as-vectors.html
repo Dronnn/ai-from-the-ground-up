@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 15 — Embeddings: Words as Vectors</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.55; margin:0; padding:3rem 1.2rem 5rem;
+  }
+  .wrap{max-width:680px; margin:0 auto}
+  .kicker{font-variant:small-caps; letter-spacing:.08em; color:var(--accent);
+    font-size:.95rem; margin-bottom:.2rem}
+  h1{font-size:2.1rem; line-height:1.15; margin:.1rem 0 1.2rem; font-weight:600}
+  h2{font-size:1.3rem; margin:2.4rem 0 .6rem; font-weight:600}
+  p{margin:.7rem 0}
+  .lead{font-size:1.12rem; color:#33312c}
+  .formula{
+    background:var(--soft); border-left:3px solid var(--accent);
+    padding:.9rem 1.1rem; margin:1.2rem 0; font-size:1.15rem;
+    font-family:"Latin Modern Math","Cambria Math",Georgia,serif; overflow-x:auto;
+  }
+  code{font-family:"SF Mono",Menlo,Consolas,monospace; font-size:.92em;
+    background:var(--soft); padding:.1em .35em; border-radius:3px}
+  a{color:var(--accent)}
+  .sidenote{font-size:.9rem; color:#5a564c; border-top:1px solid var(--rule);
+    border-bottom:1px solid var(--rule); padding:.7rem 0; margin:1.4rem 0}
+
+  /* interactive widget */
+  .widget{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .val{font-family:"SF Mono",Menlo,monospace}
+  canvas{display:block; width:100%; max-width:460px; margin:0 auto;
+    border:1px solid var(--rule); border-radius:6px; background:#fff}
+  .arith{display:flex; flex-wrap:wrap; gap:.45rem; align-items:center; margin-top:1rem;
+    font-family:"SF Mono",Menlo,monospace; font-size:.95rem}
+  .arith select{font:inherit; padding:.3rem .4rem; border:1px solid var(--rule);
+    border-radius:6px; background:var(--paper)}
+  .result{margin-top:.7rem; font-size:.95rem; min-height:1.3em}
+  .result strong{color:var(--good)}
+
+  /* code */
+  .tabs{display:flex; gap:.4rem; margin:1.2rem 0 0}
+  .tab{font:inherit; font-size:.9rem; font-variant:small-caps; letter-spacing:.05em;
+    border:1px solid var(--rule); border-bottom:none; background:var(--soft);
+    padding:.45rem 1rem; border-radius:6px 6px 0 0; cursor:pointer; color:#666}
+  .tab.active{background:#272521; color:#f3f0e7}
+  .codeblock{margin:0 0 1rem; background:#272521; color:#f3f0e7; border-radius:0 6px 6px 6px;
+    padding:1rem 1.1rem; overflow-x:auto}
+  .codeblock code{background:none; color:inherit; font-size:.86rem; line-height:1.5;
+    font-family:"SF Mono",Menlo,Consolas,monospace; white-space:pre}
+
+  /* quiz */
+  .quiz{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .q{font-weight:600; margin-bottom:.6rem}
+  .opt{display:block; width:100%; text-align:left; border:1px solid var(--rule);
+    background:var(--paper); padding:.6rem .8rem; margin:.4rem 0; border-radius:6px;
+    cursor:pointer; font:inherit}
+  .opt:hover{background:var(--soft)}
+  .opt.correct{border-color:var(--good); background:#eef7f0}
+  .opt.wrong{border-color:var(--bad); background:#f9eeee}
+  .fb{margin-top:.5rem; font-size:.95rem; min-height:1.2em}
+  footer{margin-top:3rem; border-top:1px solid var(--rule); padding-top:1rem;
+    font-size:.92rem; color:#5a564c}
+
+  /* dark theme: warm sepia night */
+  html[data-theme="dark"]{color-scheme:dark;
+    --ink:#e8e3d6; --paper:#201d18; --rule:#3d382f; --accent:#c97b6f;
+    --soft:#2a2620; --good:#8fbf9c; --bad:#d98a80}
+  html[data-theme="dark"] .lead{color:#cfc9bb}
+  html[data-theme="dark"] .sidenote, html[data-theme="dark"] footer{color:#a89f8d}
+  html[data-theme="dark"] [style*="#5a564c"]{color:#a89f8d!important}
+  html[data-theme="dark"] .quiz{background:#26221c}
+  html[data-theme="dark"] .opt.correct{background:#2a3a2e}
+  html[data-theme="dark"] .opt.wrong{background:#3d2a27}
+  html[data-theme="dark"] .tab{color:#9a9183}
+  html[data-theme="dark"] .widget{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+    background:#fff; color:#1a1a1a; color-scheme:light}
+  .themetoggle{position:fixed; top:14px; right:14px; z-index:50; width:38px; height:38px;
+    border-radius:50%; border:1px solid var(--rule); background:var(--soft); color:var(--ink);
+    font-size:1rem; cursor:pointer; line-height:1; font-family:inherit}
+  .themetoggle:hover{border-color:var(--accent)}
+  @media print{.themetoggle{display:none}
+    html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+      --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a}}
+</style>
+<script>(function(){var t=localStorage.getItem('book-theme');
+if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+document.documentElement.setAttribute('data-theme',t);})()</script>
+</head>
+<body>
+<button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
+<div class="wrap">
+  <div class="kicker">AI Foundations · Lesson 15 · Phase 5 — Under the hood of GPT</div>
+  <h1>Embeddings: Words as Vectors</h1>
+  <p class="lead">Lesson 13 left a problem hiding in plain sight. Token IDs are <em>arbitrary</em>: in our toy vocabulary <code>e</code> was 2 and <code>n</code> was 3, but <code>e</code> isn't "one less" than <code>n</code> in any meaningful way — the numbers are just list positions. A network fed raw IDs would be learning from noise. So every LLM's first real move is to trade each ID for something with meaning: a learned <strong>vector</strong> — a list of numbers, exactly lesson 3's kind — called an <strong>embedding</strong>. And meaning, it turns out, becomes <em>geometry</em>: similar words sit near each other, and directions in the space stand for concepts.</p>
+
+  <h2>One lookup, that's the whole mechanism</h2>
+  <p>The machinery could not be smaller. The model owns a big table — the <strong>embedding matrix</strong> — with one learned vector per vocabulary token. In <a href="https://www.3blue1brown.com/lessons/gpt">3Blue1Brown's description</a> of GPT: "the first matrix of the transformer, known as the embedding matrix, will have one column for each of these words. These columns determine what vector each word turns into." (One vector per token — whether they're stored as rows or columns is a bookkeeping convention, like lesson 11's <code>xAᵀ</code>.) Then:</p>
+  <div class="formula" style="text-align:center">
+    token ID 6 &nbsp;→&nbsp; take vector number 6 from the table &nbsp;→&nbsp; [0.31, −1.20, 0.07, …]
+  </div>
+  <p>That's it — an array lookup. The interesting part is where the table's numbers come from: <strong>nobody writes them</strong>. They start random (lesson 10's initialization) and are nudged by the same gradient-descent loop as every other weight, because the embedding matrix is just more trainable parameters. The meanings below <em>emerge</em> from training on next-token prediction. For scale: in GPT-3, each of these vectors has <strong>12,288 dimensions</strong> (<a href="https://www.3blue1brown.com/lessons/gpt">3Blue1Brown</a>); our demo today has 2, so we can draw it.</p>
+
+  <h2>Meaning becomes geometry</h2>
+  <p>Why does training produce <em>meaningful</em> vectors? Because words used in similar contexts get pushed toward similar predictions, and the cheapest way to make similar predictions is to have similar vectors. This was made famous by <strong>word2vec</strong> (2013), which "represents a word as a high-dimension vector of numbers which capture relationships between words" so that "words which appear in similar contexts are mapped to vectors which are nearby" (<a href="https://en.wikipedia.org/wiki/Word2vec">Wikipedia</a>). Two consequences, both measurable:</p>
+  <p><strong>Nearness = similarity.</strong> And "near" is measured with a tool you've owned since lesson 1 — the <strong>dot product</strong>. Two vectors pointing the same way → big positive dot product; unrelated → near zero; opposite → negative. Usually it's normalized into <strong>cosine similarity</strong>, which ranges from −1 to +1:</p>
+  <div class="formula" style="text-align:center; font-size:1.25rem">
+    cos(u, v) = (u·v) ⁄ (‖u‖·‖v‖)
+  </div>
+  <p>Symbol by symbol: <code>u·v</code> is the lesson-1 dot product; <code>‖u‖</code> is the vector's length (lesson 6's double bars — the square root of the vector dotted with itself); dividing by both lengths removes "loudness" so only <em>direction</em> counts. +1 means same direction, 0 unrelated, −1 opposite.</p>
+  <p><strong>Directions = concepts.</strong> The space organizes itself so that, e.g., the displacement from <em>man</em> to <em>woman</em> is roughly the same arrow wherever you apply it. Word2vec's famous party trick (<a href="https://en.wikipedia.org/wiki/Word2vec">Wikipedia</a>): "the vector representation of 'Brother' − 'Man' + 'Woman' produces a result which is closest to the vector representation of 'Sister'". 3Blue1Brown shows the same with royalty — the difference between <em>woman</em> and <em>man</em> "is quite similar to the difference between king and queen" — and even <a href="https://www.3blue1brown.com/lessons/gpt">Italy − Germany + Hitler landing near Mussolini</a>. Arithmetic on meaning.</p>
+
+  <h2>Build it: a 2-D meaning space you can check by hand</h2>
+  <p>Real embeddings are learned; ours today are hand-made so every number is checkable. Two axes: masculine↔feminine, and royal↕ordinary. Five words. Watch the dot products sort friends from strangers, and watch the famous arithmetic land <em>exactly</em> on queen:</p>
+
+  <div class="tabs">
+    <button class="tab active" data-t="swift">Swift</button>
+    <button class="tab" data-t="py">Python</button>
+  </div>
+
+  <pre class="codeblock" data-lang="swift"><code>import Foundation
+
+// a hand-made 2D embedding space:
+// axis 1: masculine +1 ... feminine -1    axis 2: royal +2 ... ordinary 0 ... object -2
+let emb: [(String, [Double])] = [
+    ("king",  [ 1.0,  2.0]),
+    ("queen", [-1.0,  2.0]),
+    ("man",   [ 1.0,  0.0]),
+    ("woman", [-1.0,  0.0]),
+    ("apple", [ 0.0, -2.0]),
+]
+func vec(_ w: String) -> [Double] { emb.first { $0.0 == w }!.1 }
+
+func dot(_ u: [Double], _ v: [Double]) -> Double { zip(u, v).map(*).reduce(0, +) }
+func length(_ u: [Double]) -> Double { sqrt(dot(u, u)) }
+func cosine(_ u: [Double], _ v: [Double]) -> Double { dot(u, v) / (length(u) * length(v)) }
+
+print("how similar is 'king' to ...")
+for (w, v) in emb {
+    let pad = String(repeating: " ", count: 6 - w.count)
+    print("  \(w)\(pad)  dot = " + String(format: "%+5.1f", dot(vec("king"), v))
+          + "   cosine = " + String(format: "%+.3f", cosine(vec("king"), v)))
+}
+
+// the famous arithmetic: king - man + woman = ?
+let t = zip(zip(vec("king"), vec("man")), vec("woman")).map { $0.0 - $0.1 + $1 }
+print("\nking - man + woman = [\(t[0]), \(t[1])]")
+let best = emb.max { cosine(t, $0.1) < cosine(t, $1.1) }!.0
+print("nearest word: '\(best)'  (cosine " + String(format: "%.3f", cosine(t, vec(best))) + ")")</code></pre>
+
+  <pre class="codeblock" data-lang="py" hidden><code>import math
+
+# a hand-made 2D embedding space:
+# axis 1: masculine +1 ... feminine -1    axis 2: royal +2 ... ordinary 0 ... object -2
+emb = {"king":  [ 1.0,  2.0],
+       "queen": [-1.0,  2.0],
+       "man":   [ 1.0,  0.0],
+       "woman": [-1.0,  0.0],
+       "apple": [ 0.0, -2.0]}
+
+def dot(u, v):    return sum(a * b for a, b in zip(u, v))
+def length(u):    return math.sqrt(dot(u, u))
+def cosine(u, v): return dot(u, v) / (length(u) * length(v))
+
+print("how similar is 'king' to ...")
+for w, v in emb.items():
+    print(f"  {w:6s}  dot = {dot(emb['king'], v):+5.1f}   cosine = {cosine(emb['king'], v):+.3f}")
+
+# the famous arithmetic: king - man + woman = ?
+t = [k - m + w for k, m, w in zip(emb["king"], emb["man"], emb["woman"])]
+print(f"\nking - man + woman = {t}")
+best = max(emb, key=lambda w: cosine(t, emb[w]))
+print(f"nearest word: '{best}'  (cosine {cosine(t, emb[best]):.3f})")</code></pre>
+
+  <p>Both print <strong>exactly</strong> this:</p>
+
+  <pre class="codeblock" style="border-radius:6px"><code>how similar is 'king' to ...
+  king    dot =  +5.0   cosine = +1.000
+  queen   dot =  +3.0   cosine = +0.600
+  man     dot =  +1.0   cosine = +0.447
+  woman   dot =  -1.0   cosine = -0.447
+  apple   dot =  -4.0   cosine = -0.894
+
+king - man + woman = [-1.0, 2.0]
+nearest word: 'queen'  (cosine 1.000)</code></pre>
+
+  <p>Check the story the numbers tell: king↔queen similar (+0.600, both royal), king↔apple near-opposite (−0.894), and king − man + woman lands on <code>[−1, 2]</code> — which <em>is</em> queen's vector, cosine exactly 1.000. The subtraction removed maleness, the addition restored femaleness, royalty never moved. You can verify every line with paper and a square root.</p>
+
+  <h2>Feel it: walk the meaning space</h2>
+  <p>The same five vectors, drawn. Pick any A − B + C and watch the arrows do meaning-arithmetic; the nearest word by cosine lights up green.</p>
+
+  <div class="widget">
+    <canvas id="cv" width="460" height="340"></canvas>
+    <div class="arith">
+      <select id="wa"></select> − <select id="wb"></select> + <select id="wc"></select>
+      <span>= ?</span>
+    </div>
+    <div class="result" id="res"></div>
+  </div>
+
+  <div class="sidenote"><strong>Honesty corner.</strong> Our cartoon has 2 axes, so "man" and "woman" come out as opposites (cosine −1) — in a real 12,288-dimensional space they're actually <em>close</em> (both human, person, noun, animate…) and differ along only a few directions. More dimensions means a word can be similar to thousands of words in thousands of different ways at once. That's the real reason for 12,288 instead of 2 — meaning needs the room. Also: real spaces are learned from data, so the analogies are approximate ("closest to", not "equal to"); our hand-built one is exact only because we rigged it.</div>
+
+  <h2>Where this sits in GPT</h2>
+  <div class="formula" style="text-align:center; font-size:1.02rem">
+    text → tokens (L13) → <strong>embedding lookup (today)</strong> → vectors that talk to each other (L16) → … → next-token probabilities (L14)
+  </div>
+  <p>One missing ingredient before the talking starts: the lookup gives the <em>same</em> vector for "bank" in "river bank" and "bank account" — and the same vector for a word whether it's the first or the fifteenth token. So the model also mixes <em>position information</em> into each vector (you'll see where in lesson 17), and then lets context reshape meaning. The mechanism that does the reshaping — each token's vector looking at all the others and updating itself — is <strong>attention</strong>. That's next, and it's the heart of the whole machine.</p>
+
+  <h2>Check yourself</h2>
+  <p>No peeking back. Pull it from memory.</p>
+
+  <div class="quiz" id="quiz1">
+    <div class="q">1. What does the embedding step actually do with a token ID?</div>
+    <button class="opt" data-c="1">uses it to look up a learned vector</button>
+    <button class="opt" data-c="0">uses it to compute a hashed checksum value</button>
+    <button class="opt" data-c="0">uses it to rank the whole vocabulary list</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz2">
+    <div class="q">2. Where do the numbers inside embedding vectors come from?</div>
+    <button class="opt" data-c="0">linguists assign them from a dictionary of meanings</button>
+    <button class="opt" data-c="1">training nudges them like every other network weight</button>
+    <button class="opt" data-c="0">the tokenizer derives them from the word's letters</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz3">
+    <div class="q">3. Cosine similarity of two embedding vectors measures whether they:</div>
+    <button class="opt" data-c="0">have equal lengths in every single dimension</button>
+    <button class="opt" data-c="0">contain identical numbers in every matching position</button>
+    <button class="opt" data-c="1">point the same direction in the space</button>
+    <div class="fb"></div>
+  </div>
+
+  <h2>Watch this next</h2>
+  <p>Primary source: <a href="https://www.3blue1brown.com/lessons/gpt"><strong>"But what is a GPT?" by 3Blue1Brown</strong></a> — the first chapter of his transformer series. The embedding section animates today's lesson in real learned spaces (including the king/queen and Mussolini demos), and the final minutes preview attention, which is exactly where we go next.</p>
+
+  <footer>
+    <p><strong>Your win today:</strong> you turned arbitrary token IDs into geometry — looked up vectors, measured meaning with cosine similarity, and did king − man + woman = queen by hand.</p>
+    <p>Previous: <a href="0014-your-first-language-model.html">Lesson 14 — Your First Language Model</a> · Next: <a href="0016-attention-every-token-looks-back.html">Lesson 16 — Attention: Every Token Looks Back</a></p>
+  </footer>
+</div>
+
+<script>
+  const $=id=>document.getElementById(id);
+
+  // ---- the same 5 vectors as the programs ----
+  const EMB={king:[1,2], queen:[-1,2], man:[1,0], woman:[-1,0], apple:[0,-2]};
+  const WORDS=Object.keys(EMB);
+  const dot=(u,v)=>u[0]*v[0]+u[1]*v[1];
+  const len=u=>Math.sqrt(dot(u,u));
+  const cosine=(u,v)=>dot(u,v)/(len(u)*len(v));
+
+  const cv=$('cv'), ctx=cv.getContext('2d');
+  const X=x=>230+x*90, Y=y=>170-y*62;
+
+  function draw(target){
+    ctx.clearRect(0,0,460,340);
+    // axes
+    ctx.strokeStyle='#e4e0d4'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(X(-2.2),Y(0)); ctx.lineTo(X(2.2),Y(0));
+    ctx.moveTo(X(0),Y(2.4)); ctx.lineTo(X(0),Y(-2.4)); ctx.stroke();
+    ctx.fillStyle='#8a857a'; ctx.font='11px Menlo,monospace';
+    ctx.fillText('feminine ←', X(-2.15), Y(0)-6);
+    ctx.fillText('→ masculine', X(1.35), Y(0)-6);
+    ctx.fillText('royal ↑', X(0)+8, Y(2.2));
+    ctx.fillText('object ↓', X(0)+8, Y(-2.2));
+    // words
+    for(const w of WORDS){
+      const [x,y]=EMB[w];
+      const isBest = target && w===target.best;
+      ctx.beginPath(); ctx.arc(X(x),Y(y),7,0,2*Math.PI);
+      ctx.fillStyle=isBest?'#1f6b3a':'#7a1f1f'; ctx.fill();
+      ctx.fillStyle=isBest?'#1f6b3a':'#1a1a1a'; ctx.font='bold 13px Menlo,monospace';
+      ctx.fillText(w, X(x)+10, Y(y)+4);
+    }
+    // the computed point
+    if(target){
+      const [x,y]=target.t;
+      ctx.beginPath(); ctx.arc(X(x),Y(y),11,0,2*Math.PI);
+      ctx.strokeStyle='#1f6b3a'; ctx.lineWidth=2.5; ctx.setLineDash([4,3]); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  WORDS.forEach(w=>['wa','wb','wc'].forEach(id=>{
+    const o=document.createElement('option'); o.value=o.textContent=w; $(id).appendChild(o);
+  }));
+  $('wa').value='king'; $('wb').value='man'; $('wc').value='woman';
+
+  function compute(){
+    const a=EMB[$('wa').value], b=EMB[$('wb').value], c=EMB[$('wc').value];
+    const t=[a[0]-b[0]+c[0], a[1]-b[1]+c[1]];
+    if(t[0]===0&&t[1]===0){
+      $('res').textContent='result = [0, 0] — the zero vector has no direction, so cosine is undefined. Try another combination.';
+      draw(null); return;
+    }
+    let best=WORDS[0];
+    for(const w of WORDS) if(cosine(t,EMB[w])>cosine(t,EMB[best])) best=w;
+    $('res').innerHTML=$('wa').value+' − '+$('wb').value+' + '+$('wc').value+
+      ' = <span class="val">['+t[0]+', '+t[1]+']</span> → nearest: <strong>'+best+'</strong>'+
+      ' <span class="val">(cosine '+cosine(t,EMB[best]).toFixed(3)+')</span>';
+    draw({t,best});
+  }
+  ['wa','wb','wc'].forEach(id=>$(id).addEventListener('change',compute));
+  compute();
+</script>
+<script>
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      const t=tab.dataset.t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.t===t));
+      document.querySelectorAll('.codeblock[data-lang]').forEach(c=>c.hidden=(c.dataset.lang!==t));
+    });
+  });
+  document.querySelectorAll('.quiz').forEach(q=>{
+    q.querySelectorAll('.opt').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        if(q.dataset.done) return;
+        q.dataset.done=1;
+        const correct=btn.dataset.c==='1';
+        btn.classList.add(correct?'correct':'wrong');
+        if(!correct){
+          q.querySelector('.opt[data-c="1"]').classList.add('correct');
+        }
+        q.querySelector('.fb').textContent = correct ? 'Correct — locked in.' : 'Not quite — the green one is right.';
+      });
+    });
+  });
+</script>
+<script>
+(function(){
+  var b=document.getElementById('themeToggle');
+  function sync(){b.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀':'☾';}
+  b.addEventListener('click',function(){
+    var next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{localStorage.setItem('book-theme',next);}catch(e){}
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

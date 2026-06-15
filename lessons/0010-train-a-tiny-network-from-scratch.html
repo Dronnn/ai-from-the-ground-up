@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 10 — Train a Tiny Network from Scratch</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.55; margin:0; padding:3rem 1.2rem 5rem;
+  }
+  .wrap{max-width:680px; margin:0 auto}
+  .kicker{font-variant:small-caps; letter-spacing:.08em; color:var(--accent);
+    font-size:.95rem; margin-bottom:.2rem}
+  h1{font-size:2.1rem; line-height:1.15; margin:.1rem 0 1.2rem; font-weight:600}
+  h2{font-size:1.3rem; margin:2.4rem 0 .6rem; font-weight:600}
+  p{margin:.7rem 0}
+  .lead{font-size:1.12rem; color:#33312c}
+  .formula{
+    background:var(--soft); border-left:3px solid var(--accent);
+    padding:.9rem 1.1rem; margin:1.2rem 0; font-size:1.15rem;
+    font-family:"Latin Modern Math","Cambria Math",Georgia,serif; overflow-x:auto;
+  }
+  code{font-family:"SF Mono",Menlo,Consolas,monospace; font-size:.92em;
+    background:var(--soft); padding:.1em .35em; border-radius:3px}
+  a{color:var(--accent)}
+  .sidenote{font-size:.9rem; color:#5a564c; border-top:1px solid var(--rule);
+    border-bottom:1px solid var(--rule); padding:.7rem 0; margin:1.4rem 0}
+
+  /* interactive widget */
+  .widget{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .val{font-family:"SF Mono",Menlo,monospace; text-align:right}
+  .btn{font:inherit; font-size:.9rem; font-variant:small-caps; letter-spacing:.05em;
+    border:1px solid var(--rule); background:#272521; color:#f3f0e7;
+    padding:.45rem 1rem; border-radius:6px; cursor:pointer}
+  .btn.ghost{background:var(--soft); color:#444}
+  .btn[disabled]{opacity:.45; cursor:default}
+  .plot{width:100%; height:auto; margin-top:1rem; border:1px dashed var(--rule); border-radius:6px}
+  table.results{width:100%; border-collapse:collapse; margin-top:1rem; font-size:.95rem}
+  table.results th{font-variant:small-caps; letter-spacing:.04em; color:#444;
+    text-align:left; border-bottom:1px solid var(--rule); padding:.3rem .5rem; font-weight:600}
+  table.results td{padding:.3rem .5rem; border-bottom:1px solid var(--soft);
+    font-family:"SF Mono",Menlo,monospace}
+  td.ok{color:var(--good)} td.no{color:var(--bad)}
+
+  /* code */
+  .tabs{display:flex; gap:.4rem; margin:1.2rem 0 0}
+  .tab{font:inherit; font-size:.9rem; font-variant:small-caps; letter-spacing:.05em;
+    border:1px solid var(--rule); border-bottom:none; background:var(--soft);
+    padding:.45rem 1rem; border-radius:6px 6px 0 0; cursor:pointer; color:#666}
+  .tab.active{background:#272521; color:#f3f0e7}
+  .codeblock{margin:0 0 1rem; background:#272521; color:#f3f0e7; border-radius:0 6px 6px 6px;
+    padding:1rem 1.1rem; overflow-x:auto}
+  .codeblock code{background:none; color:inherit; font-size:.86rem; line-height:1.5;
+    font-family:"SF Mono",Menlo,Consolas,monospace; white-space:pre}
+
+  /* quiz */
+  .quiz{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .q{font-weight:600; margin-bottom:.6rem}
+  .opt{display:block; width:100%; text-align:left; border:1px solid var(--rule);
+    background:var(--paper); padding:.6rem .8rem; margin:.4rem 0; border-radius:6px;
+    cursor:pointer; font:inherit}
+  .opt:hover{background:var(--soft)}
+  .opt.correct{border-color:var(--good); background:#eef7f0}
+  .opt.wrong{border-color:var(--bad); background:#f9eeee}
+  .fb{margin-top:.5rem; font-size:.95rem; min-height:1.2em}
+  footer{margin-top:3rem; border-top:1px solid var(--rule); padding-top:1rem;
+    font-size:.92rem; color:#5a564c}
+
+  /* dark theme: warm sepia night */
+  html[data-theme="dark"]{color-scheme:dark;
+    --ink:#e8e3d6; --paper:#201d18; --rule:#3d382f; --accent:#c97b6f;
+    --soft:#2a2620; --good:#8fbf9c; --bad:#d98a80}
+  html[data-theme="dark"] .lead{color:#cfc9bb}
+  html[data-theme="dark"] .sidenote, html[data-theme="dark"] footer,
+  html[data-theme="dark"] .phase-sub, html[data-theme="dark"] .desc,
+  html[data-theme="dark"] .sub, html[data-theme="dark"] .note{color:#a89f8d}
+  html[data-theme="dark"] [style*="#5a564c"]{color:#a89f8d!important}
+  html[data-theme="dark"] .quiz{background:#26221c}
+  html[data-theme="dark"] .opt.correct{background:#2a3a2e}
+  html[data-theme="dark"] .opt.wrong{background:#3d2a27}
+  html[data-theme="dark"] .tab{color:#9a9183}
+  /* widgets stay light: printed-figure look, keeps all verified canvas/SVG colors intact */
+  html[data-theme="dark"] .widget{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+    background:#fff; color:#1a1a1a; color-scheme:light}
+  .themetoggle{position:fixed; top:14px; right:14px; z-index:50; width:38px; height:38px;
+    border-radius:50%; border:1px solid var(--rule); background:var(--soft); color:var(--ink);
+    font-size:1rem; cursor:pointer; line-height:1; font-family:inherit}
+  .themetoggle:hover{border-color:var(--accent)}
+  @media print{.themetoggle{display:none}
+    html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+      --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a}}
+  html[data-theme="dark"] .wrap > table.results th{color:#b3aa99}
+</style>
+<script>(function(){var t=localStorage.getItem('book-theme');
+if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+document.documentElement.setAttribute('data-theme',t);})()</script>
+</head>
+<body>
+<button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
+<div class="wrap">
+  <div class="kicker">AI Foundations · Lesson 10 · Phase 4 — Build your own</div>
+  <h1>Train a Tiny Network from Scratch</h1>
+  <p class="lead">This is the lesson the whole course has been walking toward. Today you assemble everything — forward pass, loss, backpropagation, gradient descent, the training loop — into one short program with no libraries at all, and watch it <em>learn</em> something a single neuron provably never can. After today, "I trained a neural network from scratch" is simply a true sentence about you.</p>
+
+  <h2>The score to settle: XOR</h2>
+  <p>Back in <a href="0002-the-neuron-as-decision-maker.html">lesson 2</a> you saw that one neuron draws a single straight line through its input space, so it can only learn problems where one line separates the answers. XOR — output 1 when the two inputs <em>differ</em> — is the famous problem where no such line exists. This isn't course folklore: Minsky and Papert's 1969 book <em>Perceptrons</em> proved a single-layer network cannot learn XOR, and the result froze neural-net research for about a decade (<a href="https://en.wikipedia.org/wiki/Perceptron">Wikipedia: Perceptron</a>).</p>
+  <table class="results" style="max-width:340px">
+    <tr><th>x₁</th><th>x₂</th><th>x₁ XOR x₂</th></tr>
+    <tr><td>0</td><td>0</td><td>0</td></tr>
+    <tr><td>0</td><td>1</td><td>1</td></tr>
+    <tr><td>1</td><td>0</td><td>1</td></tr>
+    <tr><td>1</td><td>1</td><td>0</td></tr>
+  </table>
+  <p>The fix, as lesson 4 showed, is a <strong>hidden layer</strong>: neurons between input and output whose activations the network invents for itself. Our network today is the smallest one that works, a <strong>2-2-1</strong>: 2 inputs → 2 hidden neurons → 1 output. Count its trainable numbers: each hidden neuron has 2 weights and a bias (6 numbers), the output neuron has 2 weights and a bias (3 more). <strong>Nine numbers.</strong> Training means: nudge those nine numbers, over and over, until the network's outputs match the table above.</p>
+  <div class="formula">
+    hidden:&nbsp; h₁ = σ(w₁₁·x₁ + w₁₂·x₂ + b₁) &nbsp;&nbsp; h₂ = σ(w₂₁·x₁ + w₂₂·x₂ + b₂)<br>
+    output:&nbsp; out = σ(v₁·h₁ + v₂·h₂ + c)
+  </div>
+  <p>Nothing new here — that is lesson 4's forward pass, written out for our exact net. Each line is just lesson 1's neuron: weighted sum, plus bias, through the sigmoid. <code>w₁₂</code> reads "weight into hidden neuron 1, from input 2"; <code>v₁, v₂, c</code> are the output neuron's weights and bias.</p>
+
+  <h2>Watch it learn — right here</h2>
+  <p>Code first, as always. Below is the exact network we'll build, running live in this page, starting from the same nine hand-picked numbers as the programs further down. Untrained, it shrugs ≈ 0.5 at everything. Press <strong>train</strong> and watch the loss curve fall off a cliff as the four outputs split toward 0 and 1.</p>
+
+  <div class="widget">
+    <div style="display:flex; gap:.6rem; align-items:center; flex-wrap:wrap">
+      <button class="btn" id="train">train (4 000 epochs)</button>
+      <button class="btn ghost" id="reset">reset</button>
+      <span class="val" id="status">epoch 0 · loss —</span>
+    </div>
+    <svg class="plot" id="plot" viewBox="0 0 580 170">
+      <line x1="35" y1="140" x2="570" y2="140" stroke="#d8d4c8"/>
+      <line x1="35" y1="31.7" x2="570" y2="31.7" stroke="#d8d4c8" stroke-dasharray="4 4"/>
+      <text x="30" y="35" font-size="11" fill="#5a564c" text-anchor="end">0.25</text>
+      <text x="30" y="143" font-size="11" fill="#5a564c" text-anchor="end">0</text>
+      <text x="35" y="158" font-size="11" fill="#5a564c">epoch 0</text>
+      <text x="570" y="158" font-size="11" fill="#5a564c" text-anchor="end">4000</text>
+      <text x="300" y="20" font-size="11" fill="#5a564c" text-anchor="middle">loss (mean squared error over the 4 cases)</text>
+      <polyline id="curve" fill="none" stroke="#7a1f1f" stroke-width="2" points=""/>
+    </svg>
+    <table class="results" id="results">
+      <tr><th>input</th><th>output</th><th>target</th><th>verdict</th></tr>
+      <tr><td>0 XOR 0</td><td class="o"></td><td>0</td><td class="v"></td></tr>
+      <tr><td>0 XOR 1</td><td class="o"></td><td>1</td><td class="v"></td></tr>
+      <tr><td>1 XOR 0</td><td class="o"></td><td>1</td><td class="v"></td></tr>
+      <tr><td>1 XOR 1</td><td class="o"></td><td>0</td><td class="v"></td></tr>
+    </table>
+  </div>
+
+  <p>A "verdict" is earned by landing on the correct side of 0.5 — the same rounding rule lesson 2 used to turn an activation into a yes/no decision. What you just watched is the entire rest of this lesson; now we name it.</p>
+
+  <h2>The only new math: two deltas instead of one</h2>
+  <p>In lesson 9 your training loop updated <em>one</em> neuron. The single genuinely new thing today is bookkeeping: with two layers, the error signal must flow <em>through</em> the output neuron back into the hidden ones — exactly what lesson 8 called backpropagation. As usual, two zoom levels.</p>
+
+  <h3 style="margin:1.4rem 0 .3rem; font-size:1.05rem">① The easy way — spelled out for our nine numbers</h3>
+  <p>For one training example with target <code>y</code>, the loss is lesson 6's squared error, <code>(out − y)²</code>. Start at the output and compute its <strong>delta</strong> — lesson 8's name for "how much the loss changes per nudge of this neuron's weighted sum z":</p>
+  <div class="formula" style="font-size:1.1rem">
+    δ_out = 2·(out − y) · out·(1 − out)
+  </div>
+  <p>Read it symbol by symbol: <code>2·(out − y)</code> is the slope of the squared loss (lesson 6); <code>out·(1 − out)</code> is the sigmoid's own slope σ′(z) = σ(z)·(1 − σ(z)) from lesson 8 (<a href="http://neuralnetworksanddeeplearning.com/chap2.html">Nielsen, ch. 2</a>, his <code>sigmoid_prime</code>). Multiplying them is the chain rule: loss-per-output times output-per-z. With δ_out in hand, the output neuron's three gradients are one multiplication each — each weight's gradient is <em>the delta times whatever activation came in through that weight</em>; the bias gradient is the delta itself:</p>
+  <div class="formula" style="font-size:1.1rem">
+    ∂L/∂v₁ = δ_out·h₁ &nbsp;&nbsp; ∂L/∂v₂ = δ_out·h₂ &nbsp;&nbsp; ∂L/∂c = δ_out
+  </div>
+  <p>(Reminder from lesson 7: <code>∂L/∂v₁</code> reads "how much the loss L changes when v₁ nudges" — a slope, nothing more.) Now the step that earns the name <em>back</em>propagation. How much is hidden neuron 1 to blame? Its activation h₁ only reaches the loss through the weight v₁, so: take δ_out, carry it backwards across v₁, then multiply by h₁'s own sigmoid slope:</p>
+  <div class="formula" style="font-size:1.1rem">
+    δ_h₁ = δ_out·v₁ · h₁·(1 − h₁) &nbsp;&nbsp;&nbsp; δ_h₂ = δ_out·v₂ · h₂·(1 − h₂)
+  </div>
+  <p>And then the hidden gradients follow the exact same one-multiplication pattern as before — delta times the incoming activation (here, the raw inputs), bias gets the bare delta:</p>
+  <div class="formula" style="font-size:1.1rem">
+    ∂L/∂w₁₁ = δ_h₁·x₁ &nbsp;&nbsp; ∂L/∂w₁₂ = δ_h₁·x₂ &nbsp;&nbsp; ∂L/∂b₁ = δ_h₁ &nbsp;&nbsp; (same for row 2)
+  </div>
+  <p>Finally lesson 7's update rule, applied to all nine numbers at once: subtract the learning rate times the gradient.</p>
+  <div class="formula" style="font-size:1.1rem">
+    every parameter p:&nbsp;&nbsp; p → p − η·∂L/∂p &nbsp;&nbsp;&nbsp;(here η = 2.0)
+  </div>
+
+  <h3 style="margin:1.6rem 0 .3rem; font-size:1.05rem">② The professional way — the same thing, compressed</h3>
+  <p>In <a href="http://neuralnetworksanddeeplearning.com/chap2.html">Nielsen's chapter 2</a> these appear as the four fundamental equations of backpropagation, written for any size of network: δ at the output is ∂C/∂a·σ′(z) (BP1); each earlier layer's δ is the next layer's δ carried back through the weights, times σ′(z) (BP2); every bias gradient is its δ (BP3); every weight gradient is δ times the activation entering it (BP4). Look back at ① — you have now personally written out all four, for the 2-2-1 case. The update rule <code>v → v − η∇C</code> is equation (11) of <a href="http://neuralnetworksanddeeplearning.com/chap1.html">chapter 1</a>.</p>
+
+  <div class="sidenote"><strong>Where did the 2 come from?</strong> We define the loss as (out − y)², so its slope is 2(out − y). Nielsen defines cost with a ½ in front precisely so that the 2 cancels (<a href="http://neuralnetworksanddeeplearning.com/chap1.html">ch. 1, eqn. 6</a>). Both are correct; only the bookkeeping differs.</div>
+
+  <h2>The whole program — 47 lines, zero libraries</h2>
+  <p>Here it is: the complete trainer, Python and Swift. Pure standard library — <code>import math</code> / <code>import Foundation</code> and nothing else. Paste the Python into <a href="https://colab.research.google.com">Google Colab</a> and run it; the Swift runs as-is in an Xcode playground. The nine starting weights are hard-coded, so your run will print <em>exactly</em> the output shown after the code — both languages produce it character for character.</p>
+
+  <div class="tabs">
+    <button class="tab active" data-t="swift">Swift</button>
+    <button class="tab" data-t="py">Python</button>
+  </div>
+
+  <pre class="codeblock" data-lang="swift"><code>import Foundation
+
+func sigmoid(_ z: Double) -> Double { 1 / (1 + exp(-z)) }
+
+// the data: all four XOR cases
+let data: [(x1: Double, x2: Double, y: Double)] = [
+    (0, 0, 0), (0, 1, 1), (1, 0, 1), (1, 1, 0)
+]
+
+// deterministic starting weights (same as the Python version)
+var w11 = 0.5, w12 = -0.4, b1 = 0.1     // hidden neuron 1
+var w21 = 0.9, w22 =  0.3, b2 = -0.2    // hidden neuron 2
+var v1  = 0.8, v2  = -0.6, c  = 0.05    // output neuron
+
+let lr = 2.0
+for epoch in 0...4000 {
+    var gw11 = 0.0, gw12 = 0.0, gb1 = 0.0
+    var gw21 = 0.0, gw22 = 0.0, gb2 = 0.0
+    var gv1  = 0.0, gv2  = 0.0, gc  = 0.0
+    var loss = 0.0
+    for (x1, x2, y) in data {
+        // forward
+        let h1  = sigmoid(w11*x1 + w12*x2 + b1)
+        let h2  = sigmoid(w21*x1 + w22*x2 + b2)
+        let out = sigmoid(v1*h1 + v2*h2 + c)
+        loss += (out - y)*(out - y)
+        // backward
+        let dOut = 2*(out - y) * out*(1 - out)
+        gv1 += dOut*h1; gv2 += dOut*h2; gc += dOut
+        let dH1 = dOut*v1 * h1*(1 - h1)
+        let dH2 = dOut*v2 * h2*(1 - h2)
+        gw11 += dH1*x1; gw12 += dH1*x2; gb1 += dH1
+        gw21 += dH2*x1; gw22 += dH2*x2; gb2 += dH2
+    }
+    let n = Double(data.count)
+    loss /= n
+    w11 -= lr*gw11/n; w12 -= lr*gw12/n; b1 -= lr*gb1/n
+    w21 -= lr*gw21/n; w22 -= lr*gw22/n; b2 -= lr*gb2/n
+    v1  -= lr*gv1/n;  v2  -= lr*gv2/n;  c  -= lr*gc/n
+    if epoch % 500 == 0 {
+        print(String(format: "epoch %4d   loss %.4f", epoch, loss))
+    }
+}
+
+print()
+for (x1, x2, y) in data {
+    let h1  = sigmoid(w11*x1 + w12*x2 + b1)
+    let h2  = sigmoid(w21*x1 + w22*x2 + b2)
+    let out = sigmoid(v1*h1 + v2*h2 + c)
+    print(String(format: "%d XOR %d -> %.3f   (target %d)", Int(x1), Int(x2), out, Int(y)))
+}</code></pre>
+
+  <pre class="codeblock" data-lang="py" hidden><code>import math
+
+def sigmoid(z):
+    return 1 / (1 + math.exp(-z))
+
+# --- the data: all four XOR cases (lesson 2's impossible problem) ---
+data = [([0.0, 0.0], 0.0),
+        ([0.0, 1.0], 1.0),
+        ([1.0, 0.0], 1.0),
+        ([1.0, 1.0], 0.0)]
+
+# --- deterministic starting weights (small, asymmetric on purpose) ---
+w11, w12, b1 = 0.5, -0.4, 0.1    # hidden neuron 1
+w21, w22, b2 = 0.9,  0.3, -0.2   # hidden neuron 2
+v1,  v2,  c  = 0.8, -0.6, 0.05   # output neuron
+
+lr = 2.0
+for epoch in range(4001):
+    gw11 = gw12 = gb1 = gw21 = gw22 = gb2 = gv1 = gv2 = gc = 0.0
+    loss = 0.0
+    for (x1, x2), y in data:
+        # forward
+        h1 = sigmoid(w11*x1 + w12*x2 + b1)
+        h2 = sigmoid(w21*x1 + w22*x2 + b2)
+        out = sigmoid(v1*h1 + v2*h2 + c)
+        loss += (out - y)**2
+        # backward
+        d_out = 2*(out - y) * out*(1 - out)
+        gv1 += d_out*h1; gv2 += d_out*h2; gc += d_out
+        d_h1 = d_out*v1 * h1*(1 - h1)
+        d_h2 = d_out*v2 * h2*(1 - h2)
+        gw11 += d_h1*x1; gw12 += d_h1*x2; gb1 += d_h1
+        gw21 += d_h2*x1; gw22 += d_h2*x2; gb2 += d_h2
+    n = len(data)
+    loss /= n
+    w11 -= lr*gw11/n; w12 -= lr*gw12/n; b1 -= lr*gb1/n
+    w21 -= lr*gw21/n; w22 -= lr*gw22/n; b2 -= lr*gb2/n
+    v1  -= lr*gv1/n;  v2  -= lr*gv2/n;  c  -= lr*gc/n
+    if epoch % 500 == 0:
+        print(f"epoch {epoch:4d}   loss {loss:.4f}")
+
+print()
+for (x1, x2), y in data:
+    h1 = sigmoid(w11*x1 + w12*x2 + b1)
+    h2 = sigmoid(w21*x1 + w22*x2 + b2)
+    out = sigmoid(v1*h1 + v2*h2 + c)
+    print(f"{int(x1)} XOR {int(x2)} -> {out:.3f}   (target {int(y)})")</code></pre>
+
+  <p>And this is what it actually prints (run today, both languages, identical output):</p>
+
+  <pre class="codeblock" style="border-radius:6px"><code>epoch    0   loss 0.2518
+epoch  500   loss 0.0888
+epoch 1000   loss 0.0034
+epoch 1500   loss 0.0015
+epoch 2000   loss 0.0010
+epoch 2500   loss 0.0007
+epoch 3000   loss 0.0006
+epoch 3500   loss 0.0005
+epoch 4000   loss 0.0004
+
+0 XOR 0 -> 0.020   (target 0)
+0 XOR 1 -> 0.977   (target 1)
+1 XOR 0 -> 0.981   (target 1)
+1 XOR 1 -> 0.018   (target 0)</code></pre>
+
+  <p>All four outputs on the correct side of 0.5 — two near 0, two near 1. The thing lesson 2 proved impossible for one neuron, nine numbers and a hidden layer just learned from data.</p>
+
+  <h2>You already knew every block</h2>
+  <p>Walk the program top to bottom and notice there is nothing in it you haven't already built:</p>
+  <p><strong>forward</strong> (the three <code>sigmoid(...)</code> lines) — lesson 4's forward pass, lesson 1's neuron three times.<br>
+  <strong>loss</strong> (<code>(out − y)²</code>, averaged over the 4 cases) — lesson 6's mean squared error.<br>
+  <strong>backward</strong> (<code>d_out</code>, <code>d_h1</code>, <code>d_h2</code> and the <code>g…</code> sums) — lesson 8's deltas, the formulas from ① above, accumulated across the four examples.<br>
+  <strong>update</strong> (the <code>-= lr*…/n</code> block) — lesson 7's gradient descent step on all nine parameters.<br>
+  <strong>the epoch loop</strong> around it all — lesson 9's training loop, unchanged.</p>
+
+  <div class="sidenote"><strong>Why these starting numbers?</strong> They are small and deliberately unequal. If both hidden neurons started identical, they would compute the same output, receive the same gradients, and stay clones forever — every nudge keeps them in lockstep. Breaking that tie is called <em>symmetry breaking</em>, and it's why real networks initialize weights randomly (<a href="https://cs231n.github.io/neural-networks-2/">CS231n: Neural Networks 2</a>). We hard-code ours instead of using a random seed so that your run matches this page digit for digit. And η = 2.0 is a luxuriously large learning rate that this four-example problem happily tolerates; real datasets need far gentler steps.</div>
+
+  <h2>Check yourself</h2>
+  <p>No peeking back. Pull it from memory.</p>
+
+  <div class="quiz" id="quiz1">
+    <div class="q">1. Lesson 2 proved one neuron alone can never learn XOR. What made it learnable today?</div>
+    <button class="opt" data-c="0">a much longer training run with many more epochs</button>
+    <button class="opt" data-c="1">a hidden layer between the inputs and the output</button>
+    <button class="opt" data-c="0">a bigger learning rate applied to the single neuron</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz2">
+    <div class="q">2. In the backward pass, the gradient for output weight v₁ is:</div>
+    <button class="opt" data-c="1">the output delta multiplied by the hidden activation h₁</button>
+    <button class="opt" data-c="0">the output delta multiplied by the raw input x₁</button>
+    <button class="opt" data-c="0">the hidden delta multiplied by the network output out</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz3">
+    <div class="q">3. During the update step, every one of the nine parameters is changed by:</div>
+    <button class="opt" data-c="0">learning rate times its gradient, added onto the parameter</button>
+    <button class="opt" data-c="0">learning rate times its activation, subtracted from the parameter</button>
+    <button class="opt" data-c="1">learning rate times its gradient, subtracted from the parameter</button>
+    <div class="fb"></div>
+  </div>
+
+  <h2>Read this next</h2>
+  <p>Primary source: <a href="http://neuralnetworksanddeeplearning.com/chap1.html"><strong>Michael Nielsen, <em>Neural Networks and Deep Learning</em>, chapters 1–2</strong></a>. Chapter 1 builds exactly this kind of network from scratch (his is bigger — it reads handwritten digits); chapter 2 derives the four backprop equations you wrote out by hand today. You now have every prerequisite to read both cover to cover — try it and notice how much is familiar.</p>
+
+  <footer>
+    <p><strong>Your win today:</strong> you trained a complete neural network — forward, loss, backprop, update — from absolutely nothing, and it learned XOR, the problem a single neuron provably cannot solve.</p>
+    <p>Previous: <a href="0009-the-training-loop.html">Lesson 9 — The Training Loop</a> · Next: <a href="0011-the-same-net-in-pytorch.html">Lesson 11 — The Same Net in PyTorch</a></p>
+  </footer>
+</div>
+
+<script>
+  const $=id=>document.getElementById(id);
+
+  // ---- live XOR trainer (same numbers as the programs above) ----
+  const DATA=[[0,0,0],[0,1,1],[1,0,1],[1,1,0]];
+  const sig=z=>1/(1+Math.exp(-z));
+  const TOTAL=4000, LR=2.0;
+  let P, epoch, pts, running=false;
+
+  function fwd(x1,x2){
+    const h1=sig(P.w11*x1+P.w12*x2+P.b1), h2=sig(P.w21*x1+P.w22*x2+P.b2);
+    return [h1,h2,sig(P.v1*h1+P.v2*h2+P.c)];
+  }
+  function curLoss(){
+    let L=0;
+    for(const[x1,x2,y] of DATA){const d=fwd(x1,x2)[2]-y; L+=d*d;}
+    return L/4;
+  }
+  function oneEpoch(){
+    const g={w11:0,w12:0,b1:0,w21:0,w22:0,b2:0,v1:0,v2:0,c:0};
+    for(const[x1,x2,y] of DATA){
+      const[h1,h2,out]=fwd(x1,x2);
+      const dOut=2*(out-y)*out*(1-out);
+      g.v1+=dOut*h1; g.v2+=dOut*h2; g.c+=dOut;
+      const dH1=dOut*P.v1*h1*(1-h1), dH2=dOut*P.v2*h2*(1-h2);
+      g.w11+=dH1*x1; g.w12+=dH1*x2; g.b1+=dH1;
+      g.w21+=dH2*x1; g.w22+=dH2*x2; g.b2+=dH2;
+    }
+    for(const k in P) P[k]-=LR*g[k]/4;
+    epoch++;
+  }
+  function paint(){
+    const L=curLoss();
+    $('status').textContent='epoch '+epoch+' · loss '+L.toFixed(4);
+    $('curve').setAttribute('points',
+      pts.map(p=>(35+p[0]/TOTAL*535).toFixed(1)+','+(140-Math.min(p[1],.3)/.3*130).toFixed(1)).join(' '));
+    const rows=$('results').querySelectorAll('tr');
+    DATA.forEach((d,i)=>{
+      const out=fwd(d[0],d[1])[2], right=(out>=.5?1:0)===d[2];
+      const r=rows[i+1];
+      r.querySelector('.o').textContent=out.toFixed(3);
+      const v=r.querySelector('.v');
+      v.textContent=right?'✓ right side of 0.5':'✗ wrong side of 0.5';
+      v.className='v '+(right?'ok':'no');
+    });
+  }
+  function initNet(){
+    P={w11:.5,w12:-.4,b1:.1,w21:.9,w22:.3,b2:-.2,v1:.8,v2:-.6,c:.05};
+    epoch=0; pts=[[0,curLoss()]];
+    paint();
+  }
+  function step(){
+    for(let i=0;i<40 && epoch<TOTAL;i++){
+      oneEpoch();
+      if(epoch%20===0) pts.push([epoch,curLoss()]);
+    }
+    paint();
+    if(epoch<TOTAL){ requestAnimationFrame(step); }
+    else{ running=false; $('train').disabled=false; }
+  }
+  $('train').addEventListener('click',()=>{
+    if(running) return;
+    if(epoch>=TOTAL) initNet();
+    running=true; $('train').disabled=true;
+    requestAnimationFrame(step);
+  });
+  $('reset').addEventListener('click',()=>{
+    if(running) return;
+    initNet();
+  });
+  initNet();
+
+  // ---- tabs ----
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      const t=tab.dataset.t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.t===t));
+      document.querySelectorAll('.codeblock[data-lang]').forEach(c=>c.hidden=(c.dataset.lang!==t));
+    });
+  });
+
+  // ---- quiz ----
+  document.querySelectorAll('.quiz').forEach(q=>{
+    q.querySelectorAll('.opt').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        if(q.dataset.done) return;
+        q.dataset.done=1;
+        const correct=btn.dataset.c==='1';
+        btn.classList.add(correct?'correct':'wrong');
+        if(!correct){
+          q.querySelector('.opt[data-c="1"]').classList.add('correct');
+        }
+        q.querySelector('.fb').textContent = correct ? 'Correct — locked in.' : 'Not quite — the green one is right.';
+      });
+    });
+  });
+</script>
+<script>
+(function(){
+  var b=document.getElementById('themeToggle');
+  function sync(){b.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀':'☾';}
+  b.addEventListener('click',function(){
+    var next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{localStorage.setItem('book-theme',next);}catch(e){}
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

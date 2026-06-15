@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 16 — Attention: Every Token Looks Back</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.55; margin:0; padding:3rem 1.2rem 5rem;
+  }
+  .wrap{max-width:680px; margin:0 auto}
+  .kicker{font-variant:small-caps; letter-spacing:.08em; color:var(--accent);
+    font-size:.95rem; margin-bottom:.2rem}
+  h1{font-size:2.1rem; line-height:1.15; margin:.1rem 0 1.2rem; font-weight:600}
+  h2{font-size:1.3rem; margin:2.4rem 0 .6rem; font-weight:600}
+  p{margin:.7rem 0}
+  .lead{font-size:1.12rem; color:#33312c}
+  .formula{
+    background:var(--soft); border-left:3px solid var(--accent);
+    padding:.9rem 1.1rem; margin:1.2rem 0; font-size:1.15rem;
+    font-family:"Latin Modern Math","Cambria Math",Georgia,serif; overflow-x:auto;
+  }
+  code{font-family:"SF Mono",Menlo,Consolas,monospace; font-size:.92em;
+    background:var(--soft); padding:.1em .35em; border-radius:3px}
+  a{color:var(--accent)}
+  .sidenote{font-size:.9rem; color:#5a564c; border-top:1px solid var(--rule);
+    border-bottom:1px solid var(--rule); padding:.7rem 0; margin:1.4rem 0}
+
+  /* interactive widget */
+  .widget{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .val{font-family:"SF Mono",Menlo,monospace}
+  .tokrow{display:flex; gap:.5rem; flex-wrap:wrap}
+  .tok{font-family:"SF Mono",Menlo,monospace; font-size:1rem; border:1px solid var(--rule);
+    background:var(--paper); border-radius:6px; padding:.45rem .8rem; cursor:pointer}
+  .tok:hover{background:var(--soft)}
+  .tok.sel{background:#272521; color:#f3f0e7}
+  .steps{margin-top:1rem; font-size:.95rem}
+  .steps .stage{margin:.6rem 0}
+  .stagename{font-variant:small-caps; letter-spacing:.05em; color:#444; font-size:.85rem}
+  .wbar{display:grid; grid-template-columns:60px 1fr 64px; gap:.6rem; align-items:center; margin:.25rem 0}
+  .wbar .lbl{font-family:"SF Mono",Menlo,monospace; text-align:right; font-size:.9rem}
+  .wtrack{height:16px; background:var(--soft); border-radius:8px; overflow:hidden}
+  .wfill{height:100%; background:var(--accent)}
+  .masked{opacity:.38}
+  .newvec{margin-top:.7rem; padding-top:.7rem; border-top:1px dashed var(--rule);
+    font-family:"SF Mono",Menlo,monospace; font-size:.95rem}
+
+  /* code */
+  .tabs{display:flex; gap:.4rem; margin:1.2rem 0 0}
+  .tab{font:inherit; font-size:.9rem; font-variant:small-caps; letter-spacing:.05em;
+    border:1px solid var(--rule); border-bottom:none; background:var(--soft);
+    padding:.45rem 1rem; border-radius:6px 6px 0 0; cursor:pointer; color:#666}
+  .tab.active{background:#272521; color:#f3f0e7}
+  .codeblock{margin:0 0 1rem; background:#272521; color:#f3f0e7; border-radius:0 6px 6px 6px;
+    padding:1rem 1.1rem; overflow-x:auto}
+  .codeblock code{background:none; color:inherit; font-size:.86rem; line-height:1.5;
+    font-family:"SF Mono",Menlo,Consolas,monospace; white-space:pre}
+
+  /* quiz */
+  .quiz{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .q{font-weight:600; margin-bottom:.6rem}
+  .opt{display:block; width:100%; text-align:left; border:1px solid var(--rule);
+    background:var(--paper); padding:.6rem .8rem; margin:.4rem 0; border-radius:6px;
+    cursor:pointer; font:inherit}
+  .opt:hover{background:var(--soft)}
+  .opt.correct{border-color:var(--good); background:#eef7f0}
+  .opt.wrong{border-color:var(--bad); background:#f9eeee}
+  .fb{margin-top:.5rem; font-size:.95rem; min-height:1.2em}
+  footer{margin-top:3rem; border-top:1px solid var(--rule); padding-top:1rem;
+    font-size:.92rem; color:#5a564c}
+
+  /* dark theme: warm sepia night */
+  html[data-theme="dark"]{color-scheme:dark;
+    --ink:#e8e3d6; --paper:#201d18; --rule:#3d382f; --accent:#c97b6f;
+    --soft:#2a2620; --good:#8fbf9c; --bad:#d98a80}
+  html[data-theme="dark"] .lead{color:#cfc9bb}
+  html[data-theme="dark"] .sidenote, html[data-theme="dark"] footer{color:#a89f8d}
+  html[data-theme="dark"] [style*="#5a564c"]{color:#a89f8d!important}
+  html[data-theme="dark"] .quiz{background:#26221c}
+  html[data-theme="dark"] .opt.correct{background:#2a3a2e}
+  html[data-theme="dark"] .opt.wrong{background:#3d2a27}
+  html[data-theme="dark"] .tab{color:#9a9183}
+  html[data-theme="dark"] .widget{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+    background:#fff; color:#1a1a1a; color-scheme:light}
+  .themetoggle{position:fixed; top:14px; right:14px; z-index:50; width:38px; height:38px;
+    border-radius:50%; border:1px solid var(--rule); background:var(--soft); color:var(--ink);
+    font-size:1rem; cursor:pointer; line-height:1; font-family:inherit}
+  .themetoggle:hover{border-color:var(--accent)}
+  @media print{.themetoggle{display:none}
+    html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+      --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a}}
+</style>
+<script>(function(){var t=localStorage.getItem('book-theme');
+if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+document.documentElement.setAttribute('data-theme',t);})()</script>
+</head>
+<body>
+<button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
+<div class="wrap">
+  <div class="kicker">AI Foundations · Lesson 16 · Phase 5 — Under the hood of GPT</div>
+  <h1>Attention: Every Token Looks Back</h1>
+  <p class="lead">This is the lesson the modern AI era is named after — the 2017 paper that introduced the transformer is titled <em>"Attention Is All You Need"</em>. Lesson 14's bigram embarrassed itself because it remembered exactly one character. Lesson 15 gave every token a meaning-vector, but each vector stood alone — "cat" in <em>fluffy blue cat</em> knew nothing about fluffy or blue. <strong>Attention</strong> fixes both at once: it lets every token look back at all the tokens before it, decide which ones matter, and absorb their meaning into its own vector. And the machinery is — you can guess by now — dot products and weighted sums. Lesson 1, wearing a crown.</p>
+
+  <h2>The idea in one sentence</h2>
+  <div class="formula" style="text-align:center; font-size:1.02rem">
+    Each token asks a question, every earlier token answers, and the token's new meaning<br>is a <strong>weighted average of what the relevant ones offer</strong>.
+  </div>
+  <p>To make "asks", "answers", and "offers" precise, every token's embedding is turned into three small vectors (by three learned weight matrices — ordinary lesson-3 layers, trained like everything else):</p>
+  <p><strong>q — the query:</strong> what am I looking for? (A noun might be looking for its adjectives.)<br>
+  <strong>k — the key:</strong> what am I? (An adjective advertises: "I'm an adjective!")<br>
+  <strong>v — the value:</strong> what do I hand over if you attend to me? (Fluffy hands over <em>fluffiness</em>.)</p>
+  <p>Then three steps, all familiar:</p>
+  <div class="formula" style="font-size:1.05rem">
+    1. score:&nbsp; how well does my <strong>q</strong> match each earlier token's <strong>k</strong>? — a dot product per pair<br>
+    2. weigh:&nbsp; squash the scores into weights that sum to 1 — softmax<br>
+    3. mix:&nbsp; new me = weighted sum of everyone's <strong>v</strong>
+  </div>
+  <p>One new tool, <strong>softmax</strong>: it exponentiates each score and divides by the sum, which — in <a href="https://www.3blue1brown.com/lessons/gpt">3Blue1Brown's words</a> — "turns an arbitrary list of numbers into a valid distribution, in such a way that the largest values end up closest to 1, and the smaller values end up closer to 0". Big score → big share of the mix. (It's also exactly how lesson 14's "scores → probabilities" step works in real LLMs.)</p>
+
+  <h2>The worked example: cat absorbs its adjectives</h2>
+  <p>Three tokens — <code>fluffy blue cat</code> — with hand-set q, k, v vectors (2-D, so you can check everything; in the real model they'd be learned). The design: fluffy and blue carry the key "I'm an adjective" = [1, 0]; cat's query "I seek adjectives" = [2, 0]; values carry what each donates. Watch cat's three steps, every number verifiable:</p>
+  <div class="formula" style="font-size:1.02rem">
+    1. scores (q_cat·k, scaled):&nbsp; fluffy 2⁄√2 = 1.414 &nbsp;·&nbsp; blue 2⁄√2 = 1.414 &nbsp;·&nbsp; cat 0⁄√2 = 0<br>
+    2. softmax → weights:&nbsp; fluffy <strong>0.446</strong> &nbsp;·&nbsp; blue <strong>0.446</strong> &nbsp;·&nbsp; cat <strong>0.108</strong><br>
+    3. new cat = 0.446·[3,0] + 0.446·[0,3] + 0.108·[1,1] = <strong>[1.446, 1.446]</strong>
+  </div>
+  <p>Read step 3 slowly, because it's the entire point of Phase 5 so far: the vector called "cat" now <em>contains</em> 45% fluffiness and 45% blueness. It is no longer the dictionary vector for cat — it is the vector for <em>this particular fluffy blue cat</em>. Context has been mixed into meaning. That's what attention is <em>for</em>.</p>
+
+  <h2>Run it — and meet the causal mask</h2>
+  <p>The program computes attention for <em>all three</em> tokens, and shows one more rule: each token may only attend to itself and <strong>earlier</strong> tokens. Why? Remember the job (lesson 14): predict the <em>next</em> token. If tokens could peek forward during training, the answer would be visible in the input — the exam would contain the answer key. Blocking the peek is called <strong>causal masking</strong>: attention weights to later positions are forced to zero (<a href="https://en.wikipedia.org/wiki/Attention_(machine_learning)">Wikipedia</a>).</p>
+
+  <div class="tabs">
+    <button class="tab active" data-t="swift">Swift</button>
+    <button class="tab" data-t="py">Python</button>
+  </div>
+
+  <pre class="codeblock" data-lang="swift"><code>import Foundation
+
+// three tokens; q = what I'm looking for, k = what I am, v = what I give
+let tokens = ["fluffy", "blue", "cat"]
+let q = ["fluffy": [0.0, 1.0], "blue": [0.0, 1.0], "cat": [2.0, 0.0]]  // cat seeks adjectives
+let k = ["fluffy": [1.0, 0.0], "blue": [1.0, 0.0], "cat": [0.0, 1.0]]  // fluffy/blue ARE adjectives
+let v = ["fluffy": [3.0, 0.0], "blue": [0.0, 3.0], "cat": [1.0, 1.0]]  // what each token hands over
+
+func dot(_ u: [Double], _ w: [Double]) -> Double { zip(u, w).map(*).reduce(0, +) }
+
+func softmax(_ xs: [Double]) -> [Double] {
+    let es = xs.map(exp)
+    let s = es.reduce(0, +)
+    return es.map { $0 / s }
+}
+
+let dK = 2.0  // our key vectors have 2 dimensions
+
+for (i, t) in tokens.enumerated() {
+    let visible = Array(tokens[0...i])                 // causal mask: only look back
+    let scores = visible.map { dot(q[t]!, k[$0]!) / sqrt(dK) }
+    let weights = softmax(scores)
+    var new = [0.0, 0.0]
+    for (w, u) in zip(weights, visible) {
+        new[0] += w * v[u]![0]; new[1] += w * v[u]![1]
+    }
+    let pad = String(repeating: " ", count: 6 - t.count)
+    let wtxt = zip(visible, weights).map { "\($0) " + String(format: "%.3f", $1) }
+                                    .joined(separator: ", ")
+    print("\(t)\(pad) attends to: \(wtxt)")
+    print("        new vector: [" + String(format: "%.3f", new[0]) + ", "
+                                  + String(format: "%.3f", new[1]) + "]")
+}</code></pre>
+
+  <pre class="codeblock" data-lang="py" hidden><code>import math
+
+# three tokens; q = what I'm looking for, k = what I am, v = what I give
+tokens = ["fluffy", "blue", "cat"]
+q = {"fluffy": [0, 1], "blue": [0, 1], "cat": [2, 0]}   # cat seeks adjectives
+k = {"fluffy": [1, 0], "blue": [1, 0], "cat": [0, 1]}   # fluffy/blue ARE adjectives
+v = {"fluffy": [3, 0], "blue": [0, 3], "cat": [1, 1]}   # what each token hands over
+
+def dot(u, w): return sum(a * b for a, b in zip(u, w))
+
+def softmax(xs):
+    es = [math.exp(x) for x in xs]
+    s = sum(es)
+    return [e / s for e in es]
+
+d_k = 2  # our key vectors have 2 dimensions
+
+for i, t in enumerate(tokens):
+    visible = tokens[:i + 1]                       # causal mask: only look back
+    scores = [dot(q[t], k[u]) / math.sqrt(d_k) for u in visible]
+    weights = softmax(scores)
+    new = [sum(w * v[u][d] for w, u in zip(weights, visible)) for d in range(2)]
+    wtxt = ", ".join(f"{u} {w:.3f}" for u, w in zip(visible, weights))
+    print(f"{t:6s} attends to: {wtxt}")
+    print(f"        new vector: [{new[0]:.3f}, {new[1]:.3f}]")</code></pre>
+
+  <p>Both print <strong>exactly</strong> this:</p>
+
+  <pre class="codeblock" style="border-radius:6px"><code>fluffy attends to: fluffy 1.000
+        new vector: [3.000, 0.000]
+blue   attends to: fluffy 0.500, blue 0.500
+        new vector: [1.500, 1.500]
+cat    attends to: fluffy 0.446, blue 0.446, cat 0.108
+        new vector: [1.446, 1.446]</code></pre>
+
+  <p>Three rows, three little dramas. <code>fluffy</code> is first — the mask leaves it nothing to look at but itself, weight 1.000. <code>blue</code> can see fluffy and itself; its query matches both keys equally, so 0.500 each. And <code>cat</code> splits its attention 45/45/11 — the noun drinks in its adjectives, exactly the hand computation above.</p>
+
+  <h2>Feel it: pull on the weights</h2>
+  <p>Click a token to watch its three steps. Greyed-out rows are what the causal mask hides — future tokens that may not be consulted.</p>
+
+  <div class="widget">
+    <div class="tokrow" id="toks"></div>
+    <div class="steps" id="steps"></div>
+  </div>
+
+  <h2>The official formula — you already computed it</h2>
+  <p>In the paper and everywhere else, the three steps are written as one line (<a href="https://en.wikipedia.org/wiki/Attention_(machine_learning)">Wikipedia: Attention</a>):</p>
+  <div class="formula" style="text-align:center; font-size:1.3rem">
+    Attention(Q, K, V) = softmax( QKᵀ ⁄ √d<sub>k</sub> ) · V
+  </div>
+  <p>Symbol by symbol, with nothing new in it:</p>
+  <p><code>Q</code>, <code>K</code>, <code>V</code> — all tokens' queries, keys, and values stacked into matrices, one row per token (lesson 3's stacking move). <code>QKᵀ</code> — every query dotted with every key in one matrix multiplication: the full table of scores, all pairs at once (the ᵀ is the same transpose bookkeeping as lesson 11's <code>xAᵀ</code>). <code>⁄√d<sub>k</sub></code> — divide by the square root of the key length, our √2; in big models dot products of long vectors get large, and this rescaling keeps softmax from saturating — lesson 5's flat-ends problem in new clothing (Wikipedia: the scaling "prevents excessive variance" in the scores). <code>softmax</code> — scores to weights, row by row. <code>·V</code> — and weighted sums of the values, all tokens at once. One line of matrix algebra; you did it with school arithmetic.</p>
+
+  <div class="sidenote"><strong>Heads.</strong> A real transformer runs many of these attention machines side by side on the same tokens — each with its own learned Q/K/V matrices, each free to track a different relationship (one head might link adjectives to nouns, another might track quotes, another commas). They're called <strong>attention heads</strong>, their outputs are concatenated, and "multi-head attention" is just this — several lesson-16s in parallel. Nothing deeper than that.</div>
+
+  <h2>Why this was the breakthrough</h2>
+  <p>Two properties made attention conquer everything. <strong>Reach:</strong> the weighted sum connects <em>any</em> two positions directly — token 1,000 can pull from token 3 as easily as from token 999; the bigram's one-step memory and its successors' fading memories are gone. <strong>Learnability:</strong> the Q, K, V matrices are ordinary weights, trained by your lesson-9 loop — so the model <em>learns what to look for</em>, rather than being told. Pronoun resolution ("…the cat, because <em>it</em> was fluffy"), matching brackets in code, callback to a variable defined 200 lines up — all become "learn a query that matches that key". That's why your coding assistant can use the function signature from the top of your file: attention is literally how it looks it up.</p>
+
+  <h2>Check yourself</h2>
+  <p>No peeking back. Pull it from memory.</p>
+
+  <div class="quiz" id="quiz1">
+    <div class="q">1. A token's attention weights are computed by matching its:</div>
+    <button class="opt" data-c="0">value against every visible token's query</button>
+    <button class="opt" data-c="1">query against every visible token's key</button>
+    <button class="opt" data-c="0">key against every visible token's value</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz2">
+    <div class="q">2. After attention, a token's new vector is the weighted sum of:</div>
+    <button class="opt" data-c="0">the queries of every token it attended to</button>
+    <button class="opt" data-c="0">the keys of every token it attended to</button>
+    <button class="opt" data-c="1">the values of every token it attended to</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz3">
+    <div class="q">3. Why does the causal mask block attention to later tokens?</div>
+    <button class="opt" data-c="1">otherwise training would let tokens see the answer</button>
+    <button class="opt" data-c="0">otherwise inference would need a far bigger vocabulary</button>
+    <button class="opt" data-c="0">otherwise softmax would divide the scores by zero</button>
+    <div class="fb"></div>
+  </div>
+
+  <h2>Watch this next</h2>
+  <p>Primary source: <a href="https://www.3blue1brown.com/lessons/attention"><strong>"Attention in transformers, step-by-step" by 3Blue1Brown</strong></a> — today's exact mechanics (queries, keys, values, the adjective-updates-noun example — his phrase is "a fluffy blue creature" — masking, heads) animated in high resolution. After today's hand computation you'll watch it like a film of a book you've read.</p>
+
+  <footer>
+    <p><strong>Your win today:</strong> you computed real attention by hand — scores, softmax, weighted sum — and watched "cat" become "fluffy blue cat" inside its own vector. The formula softmax(QKᵀ⁄√d_k)V is now arithmetic you've done, not an incantation.</p>
+    <p>Previous: <a href="0015-embeddings-words-as-vectors.html">Lesson 15 — Embeddings: Words as Vectors</a> · Next: <a href="0017-the-transformer.html">Lesson 17 — The Transformer</a></p>
+  </footer>
+</div>
+
+<script>
+  const $=id=>document.getElementById(id);
+
+  // ---- exactly the model from the programs ----
+  const TOKENS=["fluffy","blue","cat"];
+  const Q={fluffy:[0,1], blue:[0,1], cat:[2,0]};
+  const K={fluffy:[1,0], blue:[1,0], cat:[0,1]};
+  const V={fluffy:[3,0], blue:[0,3], cat:[1,1]};
+  const dot=(u,w)=>u[0]*w[0]+u[1]*w[1];
+  const softmax=xs=>{const es=xs.map(Math.exp); const s=es.reduce((a,b)=>a+b,0); return es.map(e=>e/s);};
+
+  let sel="cat";
+  function render(){
+    $('toks').innerHTML=TOKENS.map(t=>
+      '<button class="tok'+(t===sel?' sel':'')+'" data-t="'+t+'">'+t+'</button>').join('');
+    document.querySelectorAll('.tok').forEach(b=>
+      b.addEventListener('click',()=>{sel=b.dataset.t; render();}));
+
+    const i=TOKENS.indexOf(sel);
+    const visible=TOKENS.slice(0,i+1);
+    const scores=visible.map(u=>dot(Q[sel],K[u])/Math.SQRT2);
+    const weights=softmax(scores);
+    const nv=[0,0];
+    visible.forEach((u,j)=>{nv[0]+=weights[j]*V[u][0]; nv[1]+=weights[j]*V[u][1];});
+
+    let html='<div class="stage"><span class="stagename">1 · scores — q·k ⁄ √2</span>';
+    TOKENS.forEach((u,j)=>{
+      const m=j>i;
+      html+='<div class="wbar'+(m?' masked':'')+'"><span class="lbl">'+u+'</span>'+
+        '<div class="wtrack"></div><span class="val">'+
+        (m?'masked':(dot(Q[sel],K[u])/Math.SQRT2).toFixed(3))+'</span></div>';
+    });
+    html+='</div><div class="stage"><span class="stagename">2 · softmax → weights (sum to 1)</span>';
+    TOKENS.forEach((u,j)=>{
+      const m=j>i, w=m?0:weights[visible.indexOf(u)];
+      html+='<div class="wbar'+(m?' masked':'')+'"><span class="lbl">'+u+'</span>'+
+        '<div class="wtrack"><div class="wfill" style="width:'+(w*100)+'%"></div></div>'+
+        '<span class="val">'+(m?'0 (mask)':w.toFixed(3))+'</span></div>';
+    });
+    html+='</div><div class="newvec">3 · new "'+sel+'" = weighted sum of values = ['+
+      nv[0].toFixed(3)+', '+nv[1].toFixed(3)+']</div>';
+    $('steps').innerHTML=html;
+  }
+  render();
+</script>
+<script>
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      const t=tab.dataset.t;
+      document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.t===t));
+      document.querySelectorAll('.codeblock[data-lang]').forEach(c=>c.hidden=(c.dataset.lang!==t));
+    });
+  });
+  document.querySelectorAll('.quiz').forEach(q=>{
+    q.querySelectorAll('.opt').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        if(q.dataset.done) return;
+        q.dataset.done=1;
+        const correct=btn.dataset.c==='1';
+        btn.classList.add(correct?'correct':'wrong');
+        if(!correct){
+          q.querySelector('.opt[data-c="1"]').classList.add('correct');
+        }
+        q.querySelector('.fb').textContent = correct ? 'Correct — locked in.' : 'Not quite — the green one is right.';
+      });
+    });
+  });
+</script>
+<script>
+(function(){
+  var b=document.getElementById('themeToggle');
+  function sync(){b.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀':'☾';}
+  b.addEventListener('click',function(){
+    var next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{localStorage.setItem('book-theme',next);}catch(e){}
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

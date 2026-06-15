@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 7 — Gradient Descent</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.55; margin:0; padding:3rem 1.2rem 5rem;
+  }
+  .wrap{max-width:680px; margin:0 auto}
+  .kicker{font-variant:small-caps; letter-spacing:.08em; color:var(--accent);
+    font-size:.95rem; margin-bottom:.2rem}
+  h1{font-size:2.1rem; line-height:1.15; margin:.1rem 0 1.2rem; font-weight:600}
+  h2{font-size:1.3rem; margin:2.4rem 0 .6rem; font-weight:600}
+  p{margin:.7rem 0}
+  .lead{font-size:1.12rem; color:#33312c}
+  .formula{
+    background:var(--soft); border-left:3px solid var(--accent);
+    padding:.9rem 1.1rem; margin:1.2rem 0; font-size:1.15rem;
+    font-family:"Latin Modern Math","Cambria Math",Georgia,serif; overflow-x:auto;
+  }
+  code{font-family:"SF Mono",Menlo,Consolas,monospace; font-size:.92em;
+    background:var(--soft); padding:.1em .35em; border-radius:3px}
+  a{color:var(--accent)}
+  .sidenote{font-size:.9rem; color:#5a564c; border-top:1px solid var(--rule);
+    border-bottom:1px solid var(--rule); padding:.7rem 0; margin:1.4rem 0}
+
+  /* interactive widget */
+  .widget{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .row{display:grid; grid-template-columns:90px 1fr 70px; gap:.8rem; align-items:center;
+    margin:.55rem 0}
+  .row label{font-variant:small-caps; letter-spacing:.04em; color:#444}
+  input[type=range]{width:100%}
+  .val{font-family:"SF Mono",Menlo,monospace; text-align:right}
+  .out{margin-top:1rem; padding-top:1rem; border-top:1px dashed var(--rule)}
+  .bar{height:22px; background:var(--soft); border-radius:11px; overflow:hidden; margin-top:.4rem}
+  .fill{height:100%; width:0; background:var(--accent); transition:width .12s}
+  .big{font-size:1.5rem; font-family:"SF Mono",Menlo,monospace}
+
+  /* code */
+  .tabs{display:flex; gap:.4rem; margin:1.2rem 0 0}
+  .tab{font:inherit; font-size:.9rem; font-variant:small-caps; letter-spacing:.05em;
+    border:1px solid var(--rule); border-bottom:none; background:var(--soft);
+    padding:.45rem 1rem; border-radius:6px 6px 0 0; cursor:pointer; color:#666}
+  .tab.active{background:#272521; color:#f3f0e7}
+  .codeblock{margin:0 0 1rem; background:#272521; color:#f3f0e7; border-radius:0 6px 6px 6px;
+    padding:1rem 1.1rem; overflow-x:auto}
+  .codeblock code{background:none; color:inherit; font-size:.86rem; line-height:1.5;
+    font-family:"SF Mono",Menlo,Consolas,monospace; white-space:pre}
+
+  /* quiz */
+  .quiz{border:1px solid var(--rule); border-radius:8px; padding:1.2rem 1.3rem;
+    margin:1.5rem 0; background:#fff}
+  .q{font-weight:600; margin-bottom:.6rem}
+  .opt{display:block; width:100%; text-align:left; border:1px solid var(--rule);
+    background:var(--paper); padding:.6rem .8rem; margin:.4rem 0; border-radius:6px;
+    cursor:pointer; font:inherit}
+  .opt:hover{background:var(--soft)}
+  .opt.correct{border-color:var(--good); background:#eef7f0}
+  .opt.wrong{border-color:var(--bad); background:#f9eeee}
+  .fb{margin-top:.5rem; font-size:.95rem; min-height:1.2em}
+  footer{margin-top:3rem; border-top:1px solid var(--rule); padding-top:1rem;
+    font-size:.92rem; color:#5a564c}
+
+  /* lesson 7 additions: descent widget + trace tables */
+  .btn{font:inherit; font-size:.95rem; font-variant:small-caps; letter-spacing:.05em;
+    border:1px solid var(--rule); background:var(--soft); padding:.45rem 1.1rem;
+    border-radius:6px; cursor:pointer}
+  .btn.primary{background:var(--accent); color:#fff; border-color:var(--accent)}
+  .btn:active{transform:translateY(1px)}
+  .ctl{display:flex; align-items:center; gap:.8rem; margin-top:.9rem; flex-wrap:wrap}
+  .ctl input[type=range]{flex:1; min-width:140px; width:auto}
+  .ctl label{font-variant:small-caps; letter-spacing:.04em; color:#444}
+  svg text{font-family:Georgia,serif; font-size:11px; fill:#5a564c}
+  table.trace{border-collapse:collapse; margin:1rem 0; width:100%}
+  .trace th,.trace td{border:1px solid var(--rule); padding:.3rem .45rem; text-align:right;
+    font-family:"SF Mono",Menlo,monospace; font-size:.8rem}
+  .trace th{background:var(--soft); font-family:inherit; font-variant:small-caps;
+    font-size:.85rem; text-align:left}
+
+  /* dark theme: warm sepia night */
+  html[data-theme="dark"]{color-scheme:dark;
+    --ink:#e8e3d6; --paper:#201d18; --rule:#3d382f; --accent:#c97b6f;
+    --soft:#2a2620; --good:#8fbf9c; --bad:#d98a80}
+  html[data-theme="dark"] .lead{color:#cfc9bb}
+  html[data-theme="dark"] .sidenote, html[data-theme="dark"] footer,
+  html[data-theme="dark"] .phase-sub, html[data-theme="dark"] .desc,
+  html[data-theme="dark"] .sub, html[data-theme="dark"] .note{color:#a89f8d}
+  html[data-theme="dark"] [style*="#5a564c"]{color:#a89f8d!important}
+  html[data-theme="dark"] .quiz{background:#26221c}
+  html[data-theme="dark"] .opt.correct{background:#2a3a2e}
+  html[data-theme="dark"] .opt.wrong{background:#3d2a27}
+  html[data-theme="dark"] .tab{color:#9a9183}
+  /* widgets stay light: printed-figure look, keeps all verified canvas/SVG colors intact */
+  html[data-theme="dark"] .widget{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+    --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a;
+    background:#fff; color:#1a1a1a; color-scheme:light}
+  .themetoggle{position:fixed; top:14px; right:14px; z-index:50; width:38px; height:38px;
+    border-radius:50%; border:1px solid var(--rule); background:var(--soft); color:var(--ink);
+    font-size:1rem; cursor:pointer; line-height:1; font-family:inherit}
+  .themetoggle:hover{border-color:var(--accent)}
+  @media print{.themetoggle{display:none}
+    html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
+      --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a}}
+</style>
+<script>(function(){var t=localStorage.getItem('book-theme');
+if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+document.documentElement.setAttribute('data-theme',t);})()</script>
+</head>
+<body>
+<button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
+<div class="wrap">
+  <div class="kicker">AI Foundations · Lesson 7 · Phase 3 — How a network learns</div>
+  <h1>Gradient Descent — Rolling Downhill</h1>
+  <p class="lead">Lesson 6 ended with one number: the <strong>loss</strong>, which measures how wrong the network is. Learning is nothing more mysterious than making that number smaller. Today you do the making-smaller yourself — by hand and in six lines of code — on a curve simple enough to see everything. The move you practice here is, unchanged, how the model you'll train at the end of this course learns.</p>
+
+  <h2>Six lines of code that learn</h2>
+  <p>Take the world's smallest learning problem: a "network" with a single weight <code>w</code>. Lesson 6 said the loss is a number you can compute for any setting of the weights. Suppose measuring it gives this curve:</p>
+  <div class="formula" style="text-align:center">L(w) = (w − 3)²</div>
+  <p>Stand at any <code>w</code>, and the loss is the gap to 3, squared. The perfect weight is obviously <code>w = 3</code>, where the loss hits 0 — but the code below never gets to "see the whole curve." Like a real network with thousands of weights, it only ever knows the ground under its feet: the loss <em>here</em>, and which way is downhill <em>here</em>. We drop it at <code>w = 0</code>, where the loss is (0 − 3)² = 9, and let it walk:</p>
+
+  <div class="tabs">
+    <button class="tab active" data-t="swift">Swift</button>
+    <button class="tab" data-t="py">Python</button>
+  </div>
+
+  <pre class="codeblock" data-lang="swift"><code>import Foundation
+
+var w = 0.0
+let eta = 0.1                  // learning rate: the step size
+for step in 1...8 {
+    let slope = 2 * (w - 3)    // dL/dw — the slope at the current w
+    w -= eta * slope           // the update rule: step AGAINST the slope
+    print(String(format: "step %d: w = %.4f   loss = %.4f",
+                 step, w, (w - 3) * (w - 3)))
+}</code></pre>
+
+  <pre class="codeblock" data-lang="py" hidden><code>w = 0.0
+eta = 0.1                      # learning rate: the step size
+for step in range(1, 9):
+    slope = 2 * (w - 3)        # dL/dw — the slope at the current w
+    w = w - eta * slope        # the update rule: step AGAINST the slope
+    print(f"step {step}: w = {w:.4f}   loss = {(w - 3) ** 2:.4f}")</code></pre>
+
+  <p>Run it — the Python version in a fresh <a href="https://colab.research.google.com">Google Colab</a> cell, the Swift version in a playground. You will get exactly this:</p>
+
+  <table class="trace">
+    <tr><th>step</th><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td></tr>
+    <tr><th>w</th><td>0.0000</td><td>0.6000</td><td>1.0800</td><td>1.4640</td><td>1.7712</td><td>2.0170</td><td>2.2136</td><td>2.3709</td><td>2.4967</td></tr>
+    <tr><th>loss</th><td>9.0000</td><td>5.7600</td><td>3.6864</td><td>2.3593</td><td>1.5099</td><td>0.9664</td><td>0.6185</td><td>0.3958</td><td>0.2533</td></tr>
+  </table>
+
+  <p>The loss falls every single step: 9 → 5.76 → 3.69 → … → 0.25. The weight crawls toward 3 without ever being told that 3 is the answer. Only two lines matter — <code>slope = 2 * (w - 3)</code> and <code>w -= eta * slope</code>. The rest is bookkeeping. Let's earn those two lines.</p>
+
+  <h2>The only calculus you need today: the slope under your feet</h2>
+  <p>The <strong>derivative</strong> of the loss at a point — written <code>dL/dw</code> — is just <em>the slope of the curve exactly where you are standing</em>. Steep means a big number; downhill-to-the-right means negative; uphill-to-the-right means positive; flat means zero. For our curve, calculus gives a tidy formula (<a href="https://www.wolframalpha.com/input?i=derivative+of+%28w-3%29%5E2+with+respect+to+w">verified in Wolfram&nbsp;Alpha</a>):</p>
+  <div class="formula" style="text-align:center">dL/dw = 2(w − 3)</div>
+  <p>You don't have to take that on faith — you're an engineer, so <em>unit-test it</em>. The slope is rise over run: nudge <code>w</code> by a tiny <code>h</code> in both directions, measure how much <code>L</code> changed, divide. If the formula is right, formula and measurement must agree:</p>
+
+  <div class="tabs">
+    <button class="tab active" data-t="swift">Swift</button>
+    <button class="tab" data-t="py">Python</button>
+  </div>
+
+  <pre class="codeblock" data-lang="swift"><code>func L(_ w: Double) -> Double { (w - 3) * (w - 3) }  // the loss curve
+let h = 1e-6                                         // a tiny nudge
+for w in [0.0, 5.0] {
+    let formula  = 2 * (w - 3)
+    let measured = (L(w + h) - L(w - h)) / (2 * h)   // rise over run
+    print("w = \(w): formula \(formula), measured \(measured)")
+}
+// w = 0.0: formula -6.0, measured -6.000000000838668
+// w = 5.0: formula 4.0, measured 4.000000000559112</code></pre>
+
+  <pre class="codeblock" data-lang="py" hidden><code>L = lambda w: (w - 3) ** 2                         # the loss curve
+h = 1e-6                                           # a tiny nudge
+for w in [0.0, 5.0]:
+    formula  = 2 * (w - 3)
+    measured = (L(w + h) - L(w - h)) / (2 * h)     # rise over run
+    print(f"w = {w}: formula {formula}, measured {measured:.6f}")
+# w = 0.0: formula -6.0, measured -6.000000
+# w = 5.0: formula  4.0, measured  4.000000</code></pre>
+
+  <p>Match. So at our start, <code>w = 0</code>, the slope is 2·(0 − 3) = <strong>−6</strong>: negative, meaning the curve falls to the right — the minimum is somewhere rightward. At <code>w = 5</code> the slope is +4: uphill to the right, so the minimum is leftward. As <a href="https://www.3blue1brown.com/lessons/gradient-descent">3Blue1Brown</a> puts it: <em>"If the slope is negative, shift to the right. If the slope is positive, shift to the left."</em> Notice the trick that makes the code so short: <strong>subtracting</strong> the slope does both cases automatically. Subtract a negative slope and you move right; subtract a positive slope and you move left. Always downhill, no <code>if</code> needed.</p>
+
+  <h2>Feel it: roll the ball yourself</h2>
+  <p>Here is the same curve with a ball standing at <code>w = 0</code>. The dashed green line is the slope under the ball. Press <strong>step</strong> to perform one update — the exact arithmetic of the code above, so with η = 0.1 your first eight presses reproduce the table line for line. Then experiment with the η slider:</p>
+  <ul>
+    <li><strong>η = 0.01</strong> — a timid crawl: after 8 steps the loss is still 6.51 of the starting 9.</li>
+    <li><strong>η = 0.5</strong> — lands on the bottom in a single hop (a lucky quirk of parabolas, not a law).</li>
+    <li><strong>η = 1.0</strong> — bounces between 0 and 6 forever; the loss never moves off 9.</li>
+    <li><strong>η = 1.1</strong> — every bounce lands 1.2× farther out, on the opposite side. Watch it leave the chart.</li>
+  </ul>
+
+  <div class="widget">
+    <svg viewBox="0 0 640 300" role="img" aria-label="The loss curve L(w) = (w minus 3) squared with a ball performing gradient descent steps">
+      <defs><clipPath id="clip"><rect x="30" y="12" width="590" height="256"/></clipPath></defs>
+      <rect x="30" y="12" width="590" height="256" fill="#fdfcf8" stroke="#d8d4c8"/>
+      <g clip-path="url(#clip)">
+        <path id="curve" fill="none" stroke="#1a1a1a" stroke-width="1.5"/>
+        <polyline id="trail" fill="none" stroke="#7a1f1f" stroke-width="1" stroke-dasharray="3 3" opacity="0.6"/>
+        <g id="dots"></g>
+        <line id="tan" stroke="#1f6b3a" stroke-width="2" stroke-dasharray="5 3"/>
+      </g>
+      <circle id="ball" r="7" fill="#7a1f1f"/>
+      <line x1="325" y1="268" x2="325" y2="274" stroke="#5a564c"/>
+      <text x="325" y="288" text-anchor="middle">w = 3 (the minimum)</text>
+      <text x="98" y="281" text-anchor="middle">−2</text>
+      <text x="189" y="281" text-anchor="middle">0</text>
+      <text x="461" y="281" text-anchor="middle">6</text>
+      <text x="552" y="281" text-anchor="middle">8</text>
+      <text x="38" y="28">L(w) = (w − 3)²</text>
+    </svg>
+    <div class="ctl">
+      <button class="btn primary" id="stepBtn">step</button>
+      <button class="btn" id="resetBtn">reset</button>
+      <label for="eta">η step size</label>
+      <input id="eta" type="range" min="0.01" max="1.2" step="0.01" value="0.1">
+      <span class="val" id="etav">0.10</span>
+    </div>
+    <div class="out" style="display:flex; gap:1.4rem; flex-wrap:wrap; align-items:baseline">
+      <div>step <span class="val" id="rs">0</span></div>
+      <div>w = <span class="val" id="rw">0.0000</span></div>
+      <div>slope = <span class="val" id="rg">−6.0000</span></div>
+      <div>loss = <span class="big" id="rl">9.0000</span></div>
+    </div>
+    <div class="fb" id="msg"></div>
+  </div>
+
+  <h2>The most important line in machine learning</h2>
+  <p>Time to name what you just did, at the usual three zoom levels. First, spelled out in words — this is the whole algorithm:</p>
+  <div class="formula" style="text-align:center; font-size:1.05rem">
+    new w &nbsp;=&nbsp; current w &nbsp;−&nbsp; (step size) × (slope of the loss at the current w)
+  </div>
+  <p>Second, the compact way every paper and textbook writes it (<a href="https://en.wikipedia.org/wiki/Gradient_descent">Wikipedia: gradient descent</a>):</p>
+  <div class="formula" style="text-align:center; font-size:1.3rem">
+    w &nbsp;←&nbsp; w − η · dL/dw
+  </div>
+  <p>Symbol by symbol:</p>
+  <ul>
+    <li><code>w</code> — the weight being trained. Just a <code>Double</code>.</li>
+    <li><code>←</code> — "becomes": assignment, math's way of writing <code>w -= …</code>.</li>
+    <li><code>η</code> — the Greek letter <em>eta</em>, the <strong>learning rate</strong>: how big a step you take. Wikipedia calls it "step size or learning rate" — same dial, two names.</li>
+    <li><code>dL/dw</code> — read as one symbol, not a fraction to compute: "the derivative of L with respect to w" — the slope of the loss curve at the current <code>w</code>. For our curve it happens to equal 2(w − 3).</li>
+  </ul>
+  <p>That single line <em>is</em> learning. Lessons 8 and 9 only add machinery for computing the slope and for repeating the line efficiently; the line itself never changes.</p>
+
+  <h2>η — the dial between crawling and exploding</h2>
+  <p>You felt it in the widget; here is the η = 1.1 run from <code>w = 0</code>, computed exactly:</p>
+
+  <table class="trace">
+    <tr><th>step</th><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td></tr>
+    <tr><th>w</th><td>0.00</td><td>6.60</td><td>−1.32</td><td>8.18</td><td>−3.22</td><td>10.46</td><td>−5.96</td><td>13.75</td><td>−9.90</td></tr>
+    <tr><th>loss</th><td>9.00</td><td>12.96</td><td>18.66</td><td>26.87</td><td>38.70</td><td>55.73</td><td>80.24</td><td>115.55</td><td>166.40</td></tr>
+  </table>
+
+  <p>Each step is so large it doesn't just overshoot the minimum — it lands on the far slope <em>higher than it started</em>, where the slope is steeper, so the next step is even bigger. Every bounce ends 1.2× farther from 3, on the opposite side, and the loss climbs forever: the run <strong>diverges</strong>. This is a real failure mode, not a toy artifact — in Wikipedia's words, "a η too large would lead to overshoot and divergence," and picking a good η is a genuine practical problem in training real networks. Too small wastes compute crawling; too big explodes. (You'll meet the standard tricks in phase 4 — for now, 0.1 served us well.)</p>
+
+  <h2>From one slope to thousands: the gradient</h2>
+  <p>A real network's loss isn't a curve over one weight — it's a landscape over <em>all</em> of them (the small digit-reading network in the 3Blue1Brown video has 13,002 weights and biases). But nothing new happens: each weight gets its own slope, answering "if I nudge <em>this</em> weight, how fast does the loss change?" Stack all those slopes into one vector and you get the <strong>gradient</strong>, written <code>∇L</code> ("nabla L"). The third, fully professional form of the update rule is then:</p>
+  <div class="formula" style="text-align:center; font-size:1.3rem">
+    <strong>w</strong> &nbsp;←&nbsp; <strong>w</strong> − η · ∇L(<strong>w</strong>)
+  </div>
+  <p>Bold <code><strong>w</strong></code> is the whole weight list (a <code>[Double]</code>, like the vectors of lesson 3), and the line means: every weight steps against its own slope, all at once. The gradient points in the direction of steepest <em>ascent</em>, so stepping along the <em>negative</em> gradient is the change to the weights that decreases the loss fastest — which is why the whole algorithm is called <strong>gradient descent</strong> (<a href="https://www.3blue1brown.com/lessons/gradient-descent">3Blue1Brown</a>, <a href="https://en.wikipedia.org/wiki/Gradient_descent">Wikipedia</a>). One question remains: how do you get thousands of slopes without nudging thousands of weights one by one? That trick is <strong>backpropagation</strong> — lesson 8.</p>
+
+  <h2>Check yourself</h2>
+  <p>No peeking back. Pull it from memory.</p>
+
+  <div class="quiz" id="quiz1">
+    <div class="q">1. Standing at some w, what does dL/dw tell you?</div>
+    <button class="opt" data-c="0">the height of the curve right there</button>
+    <button class="opt" data-c="1">the slope of the curve right there</button>
+    <button class="opt" data-c="0">the distance from the minimum right there</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz2">
+    <div class="q">2. In the update rule w ← w − η·dL/dw, the η controls:</div>
+    <button class="opt" data-c="0">the target value of the final loss</button>
+    <button class="opt" data-c="0">the number of steps the loop runs</button>
+    <button class="opt" data-c="1">the size of each step you take</button>
+    <div class="fb"></div>
+  </div>
+
+  <div class="quiz" id="quiz3">
+    <div class="q">3. In the verified run with η = 1.1, what happened?</div>
+    <button class="opt" data-c="1">each step overshot farther and loss grew</button>
+    <button class="opt" data-c="0">each step crawled slowly and loss stalled</button>
+    <button class="opt" data-c="0">each step landed closer and loss shrank</button>
+    <div class="fb"></div>
+  </div>
+
+  <h2>Watch this next</h2>
+  <p>Primary source: <a href="https://www.3blue1brown.com/lessons/gradient-descent"><strong>"Gradient descent, how neural networks learn" by 3Blue1Brown</strong></a>. It animates today's ball-on-a-curve, then lifts it to the full 13,002-dimensional landscape of a digit-reading network. (Heads-up: the video says <em>cost</em> where we say <em>loss</em> — same number, two names.) The piece it deliberately postpones — how all those slopes get computed — is exactly our <a href="0008-backpropagation.html">Lesson 8</a>.</p>
+
+  <footer>
+    <p><strong>Your win today:</strong> you ran gradient descent by hand and in code — computed the slope, stepped against it, and watched the loss fall from 9.00 to 0.25 in eight steps; that exact move is how every neural network learns.</p>
+    <p>Previous: <a href="0006-loss-measuring-wrong.html">Lesson 6 — Loss: measuring "how wrong"</a> · Next: <a href="0008-backpropagation.html">Lesson 8 — Backpropagation</a></p>
+  </footer>
+</div>
+
+<script>
+  const $=id=>document.getElementById(id);
+
+  // ---- descent widget ----
+  const WMIN=-3.5, WMAX=9.5, LMAX=44;          // visible window
+  const X0=30, X1=620, Y0=12, Y1=268;          // plot box in svg coords
+  const Lof=w=>(w-3)*(w-3);
+  const gx=w=>X0+(w-WMIN)/(WMAX-WMIN)*(X1-X0);
+  const gy=l=>Y1-(l/LMAX)*(Y1-Y0);
+  const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+
+  let d='';
+  for(let u=WMIN;u<=WMAX+1e-9;u+=0.1){d+=(d?' L':'M')+gx(u).toFixed(1)+' '+gy(Lof(u)).toFixed(1);}
+  $('curve').setAttribute('d',d);
+
+  let w,stepN,trail;
+  function render(){
+    const slope=2*(w-3), l=Lof(w);
+    const off=(w<WMIN||w>WMAX||l>LMAX);
+    $('ball').setAttribute('cx',clamp(gx(w),X0,X1));
+    $('ball').setAttribute('cy',clamp(gy(l),Y0,Y1));
+    if(off){$('tan').setAttribute('visibility','hidden');}
+    else{
+      $('tan').setAttribute('visibility','visible');
+      $('tan').setAttribute('x1',gx(w-0.6)); $('tan').setAttribute('y1',gy(l-0.6*slope));
+      $('tan').setAttribute('x2',gx(w+0.6)); $('tan').setAttribute('y2',gy(l+0.6*slope));
+    }
+    $('trail').setAttribute('points',trail.map(p=>
+      clamp(gx(p[0]),X0,X1)+','+clamp(gy(p[1]),Y0,Y1)).join(' '));
+    $('dots').innerHTML=trail.map(p=>
+      '<circle r="3" fill="#7a1f1f" opacity="0.45" cx="'+clamp(gx(p[0]),X0,X1)+
+      '" cy="'+clamp(gy(p[1]),Y0,Y1)+'"/>').join('');
+    $('rs').textContent=stepN;
+    $('rw').textContent=w.toFixed(4);
+    $('rg').textContent=slope.toFixed(4);
+    $('rl').textContent=l.toFixed(4);
+  }
+  function resetBall(){
+    w=0; stepN=0; trail=[[0,Lof(0)]];
+    const m=$('msg');
+    m.textContent='Press step. The slope here is −6: negative, so downhill is to the right.';
+    m.style.color='#5a564c';
+    render();
+  }
+  function stepBall(){
+    const eta=+$('eta').value;
+    const before=Lof(w);
+    const slope=2*(w-3);          // same arithmetic as the verified code above
+    w=w-eta*slope;
+    stepN++;
+    trail.push([w,Lof(w)]);
+    const after=Lof(w), m=$('msg');
+    if(after<1e-12){
+      m.textContent='Loss 0.0000 — the ball found the bottom: w = 3.';
+      m.style.color='var(--good)';
+    }else if(w<WMIN||w>WMAX||after>LMAX){
+      m.textContent='Off the chart with loss '+after.toFixed(2)+' and climbing — this run has diverged.';
+      m.style.color='var(--bad)';
+    }else if(after>before+1e-12){
+      m.textContent='Loss went UP ('+before.toFixed(4)+' → '+after.toFixed(4)+') — overshot past the bottom.';
+      m.style.color='var(--bad)';
+    }else if(Math.abs(after-before)<1e-12){
+      m.textContent='Loss did not change — the ball bounces between the same two spots forever.';
+      m.style.color='var(--bad)';
+    }else{
+      m.textContent='Loss shrank: '+before.toFixed(4)+' → '+after.toFixed(4)+'. Step again.';
+      m.style.color='var(--good)';
+    }
+    render();
+  }
+  $('stepBtn').addEventListener('click',stepBall);
+  $('resetBtn').addEventListener('click',resetBall);
+  $('eta').addEventListener('input',()=>{$('etav').textContent=(+$('eta').value).toFixed(2);});
+  resetBall();
+
+  // ---- code tabs ----
+  document.querySelectorAll('.tabs').forEach(group=>{
+    const blocks=[];
+    let el=group.nextElementSibling;
+    while(el&&el.classList.contains('codeblock')){blocks.push(el);el=el.nextElementSibling;}
+    group.querySelectorAll('.tab').forEach(tab=>{
+      tab.addEventListener('click',()=>{
+        const t=tab.dataset.t;
+        group.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.t===t));
+        blocks.forEach(c=>c.hidden=(c.dataset.lang!==t));
+      });
+    });
+  });
+
+  // ---- quiz ----
+  document.querySelectorAll('.quiz').forEach(q=>{
+    q.querySelectorAll('.opt').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        if(q.dataset.done) return;
+        q.dataset.done=1;
+        const correct=btn.dataset.c==='1';
+        btn.classList.add(correct?'correct':'wrong');
+        if(!correct){
+          q.querySelector('.opt[data-c="1"]').classList.add('correct');
+        }
+        q.querySelector('.fb').textContent = correct ? 'Correct — locked in.' : 'Not quite — the green one is right.';
+      });
+    });
+  });
+</script>
+<script>
+(function(){
+  var b=document.getElementById('themeToggle');
+  function sync(){b.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀':'☾';}
+  b.addEventListener('click',function(){
+    var next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{localStorage.setItem('book-theme',next);}catch(e){}
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>
