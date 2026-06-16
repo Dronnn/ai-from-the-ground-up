@@ -99,6 +99,18 @@
   @media print{.themetoggle{display:none}
     html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
       --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a}}
+  /* lesson navigation */
+  .lessonnav{display:flex; align-items:center; gap:.6rem; margin:0 0 1.6rem;
+    padding:.55rem 0; border-bottom:1px solid var(--rule); font-size:.9rem;
+    font-variant:small-caps; letter-spacing:.04em}
+  .lessonnav.bottom{margin:2.2rem 0 0; padding:.9rem 0 0;
+    border-bottom:none; border-top:1px solid var(--rule)}
+  .lessonnav a, .lessonnav span{text-decoration:none; color:var(--accent)}
+  .lessonnav a:hover{text-decoration:underline}
+  .lessonnav .nav-prev{flex:1 1 0; text-align:left}
+  .lessonnav .nav-home{flex:1 1 0; text-align:center}
+  .lessonnav .nav-next{flex:1 1 0; text-align:right}
+  .lessonnav .disabled{color:var(--ink); opacity:.32; pointer-events:none}
 </style>
 <script>(function(){var t=localStorage.getItem('book-theme');
 if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
@@ -107,6 +119,7 @@ document.documentElement.setAttribute('data-theme',t);})()</script>
 <body>
 <button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
 <div class="wrap">
+  <nav class="lessonnav top" aria-label="Lesson navigation"><a class="nav-prev" href="0018-how-gpt-is-trained.html">← Previous</a><a class="nav-home" href="../index.html">Contents</a><span class="nav-next disabled">Next →</span></nav>
   <div class="kicker">AI Foundations · Lesson 19 · Phase 5 — Under the hood of GPT</div>
   <h1>The Practitioner's Toolbox</h1>
   <p class="lead">Eighteen lessons taught you the machine. This one hands you the workshop: which languages the field actually speaks, what a notebook is, why every error message mentions CUDA, where the world keeps its models, and exactly what to install for each kind of work — including the setup that keeps your Mac completely clean. Nothing here is theory; it's the map you need the day you do any of this for real.</p>
@@ -224,8 +237,8 @@ rm -rf .venv</code></pre>
 
   <footer>
     <p><strong>Your win today:</strong> you own the map of the workshop — Python as the steering wheel over C++/CUDA engines, notebooks as the workbench, GPUs as the reason, Hugging Face/Ollama as the shelves, venv as the clean-room — and you know exactly what to install for each of the four ways people work with models.</p>
-    <p>Previous: <a href="0018-how-gpt-is-trained.html">Lesson 18 — How GPT Is Trained</a> · Next: <a href="../ROADMAP.md">Course complete</a></p>
   </footer>
+  <nav class="lessonnav bottom" aria-label="Lesson navigation"><a class="nav-prev" href="0018-how-gpt-is-trained.html">← Previous</a><a class="nav-home" href="../index.html">Contents</a><span class="nav-next disabled">Next →</span></nav>
 </div>
 
 <script>

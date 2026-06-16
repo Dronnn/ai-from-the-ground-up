@@ -108,6 +108,18 @@
   @media print{.themetoggle{display:none}
     html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
       --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a}}
+  /* lesson navigation */
+  .lessonnav{display:flex; align-items:center; gap:.6rem; margin:0 0 1.6rem;
+    padding:.55rem 0; border-bottom:1px solid var(--rule); font-size:.9rem;
+    font-variant:small-caps; letter-spacing:.04em}
+  .lessonnav.bottom{margin:2.2rem 0 0; padding:.9rem 0 0;
+    border-bottom:none; border-top:1px solid var(--rule)}
+  .lessonnav a, .lessonnav span{text-decoration:none; color:var(--accent)}
+  .lessonnav a:hover{text-decoration:underline}
+  .lessonnav .nav-prev{flex:1 1 0; text-align:left}
+  .lessonnav .nav-home{flex:1 1 0; text-align:center}
+  .lessonnav .nav-next{flex:1 1 0; text-align:right}
+  .lessonnav .disabled{color:var(--ink); opacity:.32; pointer-events:none}
 </style>
 <script>(function(){var t=localStorage.getItem('book-theme');
 if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
@@ -116,6 +128,7 @@ document.documentElement.setAttribute('data-theme',t);})()</script>
 <body>
 <button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
 <div class="wrap">
+  <nav class="lessonnav top" aria-label="Lesson navigation"><a class="nav-prev" href="0004-stacking-layers-the-forward-pass.html">← Previous</a><a class="nav-home" href="../index.html">Contents</a><a class="nav-next" href="0006-loss-measuring-wrong.html">Next →</a></nav>
   <div class="kicker">AI Foundations · Lesson 5 · Phase 2 — Many neurons → a network</div>
   <h1>Activation Functions — and Why ReLU Took Over</h1>
   <p class="lead">Lesson 4 gave you a tower of layers: matrix, bias, repeat. Here is the uncomfortable secret — without the little squashing step between layers, that whole tower is a fraud. It computes nothing a single layer couldn't. Today you'll watch depth collapse with your own eyes, learn why one bent function rescues it, and meet the three classics: sigmoid, tanh, and ReLU — the modern default, and the one inside the digit-reading model you'll train at the end of this course.</p>
@@ -308,8 +321,8 @@ for z in [-3.0, -1.0, 0.0, 1.0, 3.0]:
 
   <footer>
     <p><strong>Your win today:</strong> you can explain why a network needs nonlinearity at all — without it any depth collapses to one matrix — and you can name what sigmoid, tanh, and ReLU each squash and where each one belongs.</p>
-    <p>Previous: <a href="0004-stacking-layers-the-forward-pass.html">Lesson 4 — Stacking Layers: the Forward Pass</a> · Next: <a href="0006-loss-measuring-wrong.html">Lesson 6 — Loss: Measuring "How Wrong"</a></p>
   </footer>
+  <nav class="lessonnav bottom" aria-label="Lesson navigation"><a class="nav-prev" href="0004-stacking-layers-the-forward-pass.html">← Previous</a><a class="nav-home" href="../index.html">Contents</a><a class="nav-next" href="0006-loss-measuring-wrong.html">Next →</a></nav>
 </div>
 
 <script>

@@ -100,6 +100,18 @@
   @media print{.themetoggle{display:none}
     html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
       --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a}}
+  /* lesson navigation */
+  .lessonnav{display:flex; align-items:center; gap:.6rem; margin:0 0 1.6rem;
+    padding:.55rem 0; border-bottom:1px solid var(--rule); font-size:.9rem;
+    font-variant:small-caps; letter-spacing:.04em}
+  .lessonnav.bottom{margin:2.2rem 0 0; padding:.9rem 0 0;
+    border-bottom:none; border-top:1px solid var(--rule)}
+  .lessonnav a, .lessonnav span{text-decoration:none; color:var(--accent)}
+  .lessonnav a:hover{text-decoration:underline}
+  .lessonnav .nav-prev{flex:1 1 0; text-align:left}
+  .lessonnav .nav-home{flex:1 1 0; text-align:center}
+  .lessonnav .nav-next{flex:1 1 0; text-align:right}
+  .lessonnav .disabled{color:var(--ink); opacity:.32; pointer-events:none}
 </style>
 <script>(function(){var t=localStorage.getItem('book-theme');
 if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
@@ -108,6 +120,7 @@ document.documentElement.setAttribute('data-theme',t);})()</script>
 <body>
 <button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
 <div class="wrap">
+  <nav class="lessonnav top" aria-label="Lesson navigation"><a class="nav-prev" href="0013-text-becomes-numbers-tokens.html">← Previous</a><a class="nav-home" href="../index.html">Contents</a><a class="nav-next" href="0015-embeddings-words-as-vectors.html">Next →</a></nav>
   <div class="kicker">AI Foundations · Lesson 14 · Phase 5 — Under the hood of GPT</div>
   <h1>Your First Language Model</h1>
   <p class="lead">Today you build a model that <em>invents girls' names</em> — and in doing so you'll hold, in twenty lines, the exact job description of GPT. A <strong>language model</strong> does one thing: given some text, it assigns a probability to every possible next token, and generation is just sampling from those probabilities, over and over (<a href="https://www.3blue1brown.com/lessons/mini-llm">3Blue1Brown</a>). GPT does it with a trillion-knob network over 100k tokens; yours will do it with a counting table over 16 characters. Same machine, different size — and yours you can read whole.</p>
@@ -324,8 +337,8 @@ invented names:
 
   <footer>
     <p><strong>Your win today:</strong> you built a complete language model — count, divide, sample — watched it invent names, and you can now state GPT's job in one sentence: compute P(next token | everything so far) and roll the dice.</p>
-    <p>Previous: <a href="0013-text-becomes-numbers-tokens.html">Lesson 13 — Text Becomes Numbers: Tokens</a> · Next: <a href="0015-embeddings-words-as-vectors.html">Lesson 15 — Embeddings: Words as Vectors</a></p>
   </footer>
+  <nav class="lessonnav bottom" aria-label="Lesson navigation"><a class="nav-prev" href="0013-text-becomes-numbers-tokens.html">← Previous</a><a class="nav-home" href="../index.html">Contents</a><a class="nav-next" href="0015-embeddings-words-as-vectors.html">Next →</a></nav>
 </div>
 
 <script>

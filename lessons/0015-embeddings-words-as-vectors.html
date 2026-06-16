@@ -92,6 +92,18 @@
   @media print{.themetoggle{display:none}
     html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
       --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a}}
+  /* lesson navigation */
+  .lessonnav{display:flex; align-items:center; gap:.6rem; margin:0 0 1.6rem;
+    padding:.55rem 0; border-bottom:1px solid var(--rule); font-size:.9rem;
+    font-variant:small-caps; letter-spacing:.04em}
+  .lessonnav.bottom{margin:2.2rem 0 0; padding:.9rem 0 0;
+    border-bottom:none; border-top:1px solid var(--rule)}
+  .lessonnav a, .lessonnav span{text-decoration:none; color:var(--accent)}
+  .lessonnav a:hover{text-decoration:underline}
+  .lessonnav .nav-prev{flex:1 1 0; text-align:left}
+  .lessonnav .nav-home{flex:1 1 0; text-align:center}
+  .lessonnav .nav-next{flex:1 1 0; text-align:right}
+  .lessonnav .disabled{color:var(--ink); opacity:.32; pointer-events:none}
 </style>
 <script>(function(){var t=localStorage.getItem('book-theme');
 if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
@@ -100,6 +112,7 @@ document.documentElement.setAttribute('data-theme',t);})()</script>
 <body>
 <button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
 <div class="wrap">
+  <nav class="lessonnav top" aria-label="Lesson navigation"><a class="nav-prev" href="0014-your-first-language-model.html">← Previous</a><a class="nav-home" href="../index.html">Contents</a><a class="nav-next" href="0016-attention-every-token-looks-back.html">Next →</a></nav>
   <div class="kicker">AI Foundations · Lesson 15 · Phase 5 — Under the hood of GPT</div>
   <h1>Embeddings: Words as Vectors</h1>
   <p class="lead">Lesson 13 left a problem hiding in plain sight. Token IDs are <em>arbitrary</em>: in our toy vocabulary <code>e</code> was 2 and <code>n</code> was 3, but <code>e</code> isn't "one less" than <code>n</code> in any meaningful way — the numbers are just list positions. A network fed raw IDs would be learning from noise. So every LLM's first real move is to trade each ID for something with meaning: a learned <strong>vector</strong> — a list of numbers, exactly lesson 3's kind — called an <strong>embedding</strong>. And meaning, it turns out, becomes <em>geometry</em>: similar words sit near each other, and directions in the space stand for concepts.</p>
@@ -248,8 +261,8 @@ nearest word: 'queen'  (cosine 1.000)</code></pre>
 
   <footer>
     <p><strong>Your win today:</strong> you turned arbitrary token IDs into geometry — looked up vectors, measured meaning with cosine similarity, and did king − man + woman = queen by hand.</p>
-    <p>Previous: <a href="0014-your-first-language-model.html">Lesson 14 — Your First Language Model</a> · Next: <a href="0016-attention-every-token-looks-back.html">Lesson 16 — Attention: Every Token Looks Back</a></p>
   </footer>
+  <nav class="lessonnav bottom" aria-label="Lesson navigation"><a class="nav-prev" href="0014-your-first-language-model.html">← Previous</a><a class="nav-home" href="../index.html">Contents</a><a class="nav-next" href="0016-attention-every-token-looks-back.html">Next →</a></nav>
 </div>
 
 <script>

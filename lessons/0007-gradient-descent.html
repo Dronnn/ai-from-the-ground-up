@@ -111,6 +111,18 @@
   @media print{.themetoggle{display:none}
     html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
       --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a}}
+  /* lesson navigation */
+  .lessonnav{display:flex; align-items:center; gap:.6rem; margin:0 0 1.6rem;
+    padding:.55rem 0; border-bottom:1px solid var(--rule); font-size:.9rem;
+    font-variant:small-caps; letter-spacing:.04em}
+  .lessonnav.bottom{margin:2.2rem 0 0; padding:.9rem 0 0;
+    border-bottom:none; border-top:1px solid var(--rule)}
+  .lessonnav a, .lessonnav span{text-decoration:none; color:var(--accent)}
+  .lessonnav a:hover{text-decoration:underline}
+  .lessonnav .nav-prev{flex:1 1 0; text-align:left}
+  .lessonnav .nav-home{flex:1 1 0; text-align:center}
+  .lessonnav .nav-next{flex:1 1 0; text-align:right}
+  .lessonnav .disabled{color:var(--ink); opacity:.32; pointer-events:none}
 </style>
 <script>(function(){var t=localStorage.getItem('book-theme');
 if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
@@ -119,6 +131,7 @@ document.documentElement.setAttribute('data-theme',t);})()</script>
 <body>
 <button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
 <div class="wrap">
+  <nav class="lessonnav top" aria-label="Lesson navigation"><a class="nav-prev" href="0006-loss-measuring-wrong.html">← Previous</a><a class="nav-home" href="../index.html">Contents</a><a class="nav-next" href="0008-backpropagation.html">Next →</a></nav>
   <div class="kicker">AI Foundations · Lesson 7 · Phase 3 — How a network learns</div>
   <h1>Gradient Descent — Rolling Downhill</h1>
   <p class="lead">Lesson 6 ended with one number: the <strong>loss</strong>, which measures how wrong the network is. Learning is nothing more mysterious than making that number smaller. Today you do the making-smaller yourself — by hand and in six lines of code — on a curve simple enough to see everything. The move you practice here is, unchanged, how the model you'll train at the end of this course learns.</p>
@@ -304,8 +317,8 @@ for w in [0.0, 5.0]:
 
   <footer>
     <p><strong>Your win today:</strong> you ran gradient descent by hand and in code — computed the slope, stepped against it, and watched the loss fall from 9.00 to 0.25 in eight steps; that exact move is how every neural network learns.</p>
-    <p>Previous: <a href="0006-loss-measuring-wrong.html">Lesson 6 — Loss: measuring "how wrong"</a> · Next: <a href="0008-backpropagation.html">Lesson 8 — Backpropagation</a></p>
   </footer>
+  <nav class="lessonnav bottom" aria-label="Lesson navigation"><a class="nav-prev" href="0006-loss-measuring-wrong.html">← Previous</a><a class="nav-home" href="../index.html">Contents</a><a class="nav-next" href="0008-backpropagation.html">Next →</a></nav>
 </div>
 
 <script>

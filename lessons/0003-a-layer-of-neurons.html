@@ -109,6 +109,18 @@
   @media print{.themetoggle{display:none}
     html[data-theme="dark"]{--ink:#1a1a1a; --paper:#fdfcf8; --rule:#d8d4c8;
       --accent:#7a1f1f; --soft:#f3f0e7; --good:#1f6b3a; --bad:#9a2a2a}}
+  /* lesson navigation */
+  .lessonnav{display:flex; align-items:center; gap:.6rem; margin:0 0 1.6rem;
+    padding:.55rem 0; border-bottom:1px solid var(--rule); font-size:.9rem;
+    font-variant:small-caps; letter-spacing:.04em}
+  .lessonnav.bottom{margin:2.2rem 0 0; padding:.9rem 0 0;
+    border-bottom:none; border-top:1px solid var(--rule)}
+  .lessonnav a, .lessonnav span{text-decoration:none; color:var(--accent)}
+  .lessonnav a:hover{text-decoration:underline}
+  .lessonnav .nav-prev{flex:1 1 0; text-align:left}
+  .lessonnav .nav-home{flex:1 1 0; text-align:center}
+  .lessonnav .nav-next{flex:1 1 0; text-align:right}
+  .lessonnav .disabled{color:var(--ink); opacity:.32; pointer-events:none}
 </style>
 <script>(function(){var t=localStorage.getItem('book-theme');
 if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
@@ -117,6 +129,7 @@ document.documentElement.setAttribute('data-theme',t);})()</script>
 <body>
 <button class="themetoggle" id="themeToggle" aria-label="Switch color theme">☾</button>
 <div class="wrap">
+  <nav class="lessonnav top" aria-label="Lesson navigation"><a class="nav-prev" href="0002-the-neuron-as-decision-maker.html">← Previous</a><a class="nav-home" href="../index.html">Contents</a><a class="nav-next" href="0004-stacking-layers-the-forward-pass.html">Next →</a></nav>
   <div class="kicker">AI Foundations · Lesson 3 · Phase 2 — Many neurons → a network</div>
   <h1>A Layer of Neurons — Enter the Vector</h1>
   <p class="lead">In Lesson 1 you built one neuron. A real network — the kind you'll train at the end of this course — uses thousands, arranged in <strong>layers</strong>. Here's the relieving secret: a layer contains <em>zero</em> new math. It's the Lesson-1 neuron copy-pasted, plus a tidier way to write the pile down. Master that notation today and every ML paper and library suddenly reads like code.</p>
@@ -306,8 +319,8 @@ a = σ⎡  2.00 ⎤ = ⎡ σ(2.00)  ⎤ = ⎡ 0.881 ⎤
 
   <footer>
     <p><strong>Your win today:</strong> you computed a full layer — 3 inputs → 2 neurons — by hand and in code, and saw that the professional notation a = σ(W·x + b) is nothing but your Lesson-1 neuron repeated, one matrix row at a time.</p>
-    <p>Previous: <a href="0002-the-neuron-as-decision-maker.html">Lesson 2 — The Neuron as Decision-Maker</a> · Next: <a href="0004-stacking-layers-the-forward-pass.html">Lesson 4 — Stacking Layers: the Forward Pass</a></p>
   </footer>
+  <nav class="lessonnav bottom" aria-label="Lesson navigation"><a class="nav-prev" href="0002-the-neuron-as-decision-maker.html">← Previous</a><a class="nav-home" href="../index.html">Contents</a><a class="nav-next" href="0004-stacking-layers-the-forward-pass.html">Next →</a></nav>
 </div>
 
 <script>
